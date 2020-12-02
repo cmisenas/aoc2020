@@ -3,7 +3,6 @@ use std::io::{self, BufRead, Error, ErrorKind};
 use std::path::Path;
 
 fn main() {
-    // O(n*n) complexity. Might be able to improve by sorting?
     if let Ok(lines) = read_lines("./day1.input") {
         'l1: for (i, a) in lines.iter().enumerate() {
             for (j, b) in lines[i + 1..].iter().enumerate() {
@@ -23,8 +22,6 @@ fn main() {
         }
     }
 }
-
-fn first_puzzle() {}
 
 fn read_lines<P>(filename: P) -> Result<Vec<i64>, Error>
 where
