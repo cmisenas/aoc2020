@@ -5,17 +5,26 @@ use std::path::Path;
 fn main() {
     // O(n*n) complexity. Might be able to improve by sorting?
     if let Ok(lines) = read_lines("./day1.input") {
-        'outer: for (i, outer) in lines.iter().enumerate() {
-            for inner in &lines[i + 1..] {
-                if inner + outer == 2020 {
-                    println!("{} + {} = 2020", inner, outer);
-                    println!("{} * {} = {}", inner, outer, inner * outer);
-                    break 'outer;
+        'l1: for (i, a) in lines.iter().enumerate() {
+            for (j, b) in lines[i + 1..].iter().enumerate() {
+                if a + b == 2020 {
+                    println!("{} + {} = 2020", a, b);
+                    println!("{} * {} = {}", a, b, a * b);
+                    continue;
+                }
+                for c in &lines[j + 1..] {
+                    if a + b + c == 2020 {
+                        println!("{} + {} + {} = 2020", a, b, c);
+                        println!("{} * {} * {} = {}", a, b, c, a * b * c);
+                        break 'l1;
+                    }
                 }
             }
         }
     }
 }
+
+fn first_puzzle() {}
 
 fn read_lines<P>(filename: P) -> Result<Vec<i64>, Error>
 where
