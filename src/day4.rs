@@ -32,7 +32,7 @@ fn is_valid_pp(pp: String) -> bool {
     let hgt = Regex::new(r"\bhgt:(1([5-8]\d|9[0-3])cm|(59|6\d|7[0-6])in)\b").unwrap();
     let iyr = Regex::new(r"\biyr:20(1\d|20)\b").unwrap();
     let eyr = Regex::new(r"\beyr:20(2\d|30)\b").unwrap();
-    let hcl = Regex::new(r"\bhcl:#[0-9a-fA-F]+\b").unwrap();
+    let hcl = Regex::new(r"\bhcl:#[0-9a-fA-F]{6}\b").unwrap();
     let ecl = Regex::new(r"\becl:(amb|blu|brn|gry|grn|hzl|oth)\b").unwrap();
     let pid = Regex::new(r"\bpid:\d{9}\b").unwrap();
     return byr.is_match(&&pp)
