@@ -2,7 +2,7 @@ use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
 
-fn main() {
+pub fn main() {
     let mut valid = 0;
     if let lines = read_lines("./day2.input") {
         for line in lines {

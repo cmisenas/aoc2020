@@ -2,7 +2,7 @@ use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
 
-fn main() {
+pub fn main() {
     let lines = read_lines_as_str("./day3.input");
     let s1 = get_trees_enc(1, 1, &lines);
     let s2 = get_trees_enc(3, 1, &lines);

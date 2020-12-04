@@ -2,7 +2,7 @@ use std::fs::File;
 use std::io::{self, BufRead, Error, ErrorKind};
 use std::path::Path;
 
-fn main() {
+pub fn main() {
     if let Ok(lines) = read_lines("./day1.input") {
         'l1: for (i, a) in lines.iter().enumerate() {
             for (j, b) in lines[i + 1..].iter().enumerate() {
