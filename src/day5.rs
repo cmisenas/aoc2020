@@ -9,8 +9,8 @@ pub fn main() {
     for line in lines {
         let row_part = line.get(0..7).expect("error").to_string();
         let col_part = line.get(7..).expect("error").to_string();
-        let row = compute_row(row_part, 0, 127);
-        let col = compute_col(col_part, 0, 7);
+        let row = compute(row_part, 0, 127);
+        let col = compute(col_part, 0, 7);
         let seat = compute_seat_id(row, col);
         seats.push(seat);
     }
@@ -30,35 +30,19 @@ pub fn main() {
     println!("My seat ID {}", my_seat);
 }
 
-fn compute_row(part: String, low: i32, hi: i32) -> i32 {
+fn compute(part: String, low: i32, hi: i32) -> i32 {
     let mid = (hi + low) / 2;
     let curr_r = part.chars().nth(0).unwrap().to_string();
     if part.len() == 1 {
-        if curr_r == "F" {
+        if curr_r == "F" || curr_r == "L" {
             low
         } else {
             hi
         }
-    } else if curr_r == "F" {
-        compute_row(part.get(1..).expect("no str").to_string(), low, mid)
+    } else if curr_r == "F" || curr_r == "L" {
+        compute(part.get(1..).expect("no str").to_string(), low, mid)
     } else {
-        compute_row(part.get(1..).expect("no str").to_string(), mid + 1, hi)
-    }
-}
-
-fn compute_col(part: String, l: i32, r: i32) -> i32 {
-    let mid = (l + r) / 2;
-    let curr_r = part.chars().nth(0).unwrap().to_string();
-    if part.len() == 1 {
-        if curr_r == "L" {
-            l
-        } else {
-            r
-        }
-    } else if curr_r == "L" {
-        compute_col(part.get(1..).expect("no str").to_string(), l, mid)
-    } else {
-        compute_col(part.get(1..).expect("no str").to_string(), mid + 1, r)
+        compute(part.get(1..).expect("no str").to_string(), mid + 1, hi)
     }
 }
 
