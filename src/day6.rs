@@ -13,8 +13,8 @@ pub fn main() {
     for line in lines {
         if line == "" {
             let ans = calc_group(&curr_group);
-            sum_1 = sum_1 + ans[0];
-            sum_2 = sum_2 + ans[1];
+            sum_1 += ans[0];
+            sum_2 += ans[1];
             curr_group.clear();
         } else {
             curr_group.push(line);
@@ -35,9 +35,9 @@ fn calc_group(group: &Vec<String>) -> Vec<usize> {
         }
     }
     let mut c = 0;
-    for (k, ac) in answers_count.iter() {
+    for (_, ac) in answers_count.iter() {
         if *ac == group.len() {
-            c = c + 1;
+            c += 1;
         }
     }
     vec![answers.len(), c]
