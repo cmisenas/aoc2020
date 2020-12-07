@@ -36,51 +36,30 @@ pub fn main() {
     println!("Answer 2 {}", answer2);
 }
 
-fn solve1(bag: String, rules: HashMap<String, HashMap<String, i32>>) -> i32 {
-    let (tmp_to_look, count) = count1(bag.to_string(), rules.clone());
-    for tl in tmp_to_look {
-        println!("Bags that could contain {}", tl);
-    }
-
-    count
-}
-
-fn count1(bs: String, rules: HashMap<String, HashMap<String, i32>>) -> (HashSet<String>, i32) {
-    // println!("looking at bag {} ", bs);
+fn solve1(main_bag: String, rules: HashMap<String, HashMap<String, i32>>) -> i32 {
     let mut count = 0;
-    let mut bags: HashSet<String> = HashSet::new();
     let mut keep_search = true;
     let mut search_these: HashSet<String> = HashSet::new();
     let mut counted: HashSet<String> = HashSet::new();
-    search_these.insert(bs.to_string());
+    search_these.insert(main_bag.to_string());
 
     while keep_search {
         for b in search_these.clone().iter() {
-            // println!("count for bag {}", b);
             for (bag, rule) in &rules {
                 let rule_bags: Vec<String> = rule.keys().cloned().collect();
-                if rule_bags.contains(&b.to_string()) && !counted.contains(&bag.to_string()) {
+                if rule_bags.contains(b) && !counted.contains(bag) {
                     search_these.insert(bag.to_string());
                     counted.insert(bag.to_string());
-                    //println!(
-                    //    "Contain {} in {}; To search: {}",
-                    //    b,
-                    //    bag,
-                    //    search_these.len()
-                    //);
-                    bags.insert(bag.to_string());
                     count += 1;
                 }
                 search_these.remove(b);
             }
         }
-        // println!("Searching for {} more bags", search_these.len());
         if search_these.len() == 0 {
             keep_search = false;
         }
     }
-    println!("For bag: {} there are {}", bs.to_string(), count);
-    (bags, count)
+    count
 }
 
 fn solve2(main_bag: String, rules: HashMap<String, HashMap<String, i32>>) -> i32 {
@@ -99,14 +78,10 @@ fn get_bag_rule(rule: String) -> BagRules {
     let b: String = a[1].to_string();
     let c: Vec<&str> = b.split(", ").collect();
     let mut bag_rule = HashMap::new();
-    // println!("Bag {}", a[0]);
-    // println!("b: {}", b);
     for d in c {
         let parsed = parse_bag_rule(d.to_string());
-        // println!("Rules: {} {}", parsed.bag, parsed.qt);
         bag_rule.insert(parsed.bag, parsed.qt);
     }
-    // println!("\n");
     BagRules {
         bag: a[0].to_string(),
         rules: bag_rule,
@@ -114,7 +89,6 @@ fn get_bag_rule(rule: String) -> BagRules {
 }
 
 fn parse_bag_rule(rule: String) -> BagRule {
-    // println!("Rule: {}", rule);
     let a = rule.find(' ').unwrap();
     let qt = rule
         .get(0..a)
