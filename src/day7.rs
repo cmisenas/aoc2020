@@ -29,7 +29,8 @@ pub fn main() {
         final_rules.insert(rule.bag, rule.rules);
     }
 
-    answer1 = solve1(main_bag.to_string(), final_rules);
+    answer1 = solve1(main_bag.to_string(), final_rules.clone());
+    answer2 = solve2(main_bag.to_string(), final_rules.clone());
 
     println!("Answer 1 {}", answer1);
     println!("Answer 2 {}", answer2);
@@ -82,12 +83,14 @@ fn count1(bs: String, rules: HashMap<String, HashMap<String, i32>>) -> (HashSet<
     (bags, count)
 }
 
-fn solve2(bag: String, rules: HashMap<String, HashMap<String, i32>>) -> i32 {
-    let (tmp_to_look, count) = count1(bag.to_string(), rules.clone());
-    for tl in tmp_to_look {
-        println!("Bags that could contain {}", tl);
+fn solve2(main_bag: String, rules: HashMap<String, HashMap<String, i32>>) -> i32 {
+    let mut count = 0;
+    let empty_hm = HashMap::new();
+    let bags_within: HashMap<String, i32> = rules.get(&main_bag).unwrap_or(&empty_hm).clone();
+    for (bw, qt) in &bags_within {
+        count += qt;
+        count += qt * solve2(bw.to_string(), rules.clone());
     }
-
     count
 }
 
