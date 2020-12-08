@@ -60,14 +60,3 @@ where
         .map(|l| l.expect("Could not parse line"))
         .collect()
 }
-
-fn read_lines_as_int<P>(filename: P) -> Vec<i64>
-where
-    P: AsRef<Path>,
-{
-    let file = File::open(filename).expect("no such file");
-    let buf = io::BufReader::new(file);
-    buf.lines()
-        .map(|l| l.expect("Could not parse line").parse::<i64>().unwrap())
-        .collect()
-}
