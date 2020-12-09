@@ -1,5 +1,5 @@
 use std::fs::File;
-use std::io::{self, BufRead, Error, ErrorKind};
+use std::io::{self, BufRead};
 use std::path::Path;
 
 pub fn main() {
@@ -37,12 +37,15 @@ pub fn main() {
     'l1: for (i, a) in lines.iter().enumerate() {
         for (j, b) in lines[i + 1..].iter().enumerate() {
             if a + b == 2020 {
-                println!("{} + {} = 2020, {}", a, b, a * b);
+                println!("Answer 1 {}", a * b);
+                continue;
+            }
+            if a + b > 2020 {
                 continue;
             }
             for c in &lines[j + 1..] {
                 if a + b + c == 2020 {
-                    println!("{} + {} + {} = 2020, {}", a, b, c, a * b * c);
+                    println!("Answer 2 {}", a * b * c);
                     break 'l1;
                 }
             }

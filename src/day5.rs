@@ -4,30 +4,27 @@ use std::path::Path;
 
 pub fn main() {
     let lines = read_lines_as_str("./day5.input");
-    let mut seats = Vec::new();
-
-    for line in lines {
-        let row_part = line.get(0..7).expect("error").to_string();
-        let col_part = line.get(7..).expect("error").to_string();
-        let row = compute(row_part, 0, 127);
-        let col = compute(col_part, 0, 7);
-        let seat = compute_seat_id(row, col);
-        seats.push(seat);
-    }
+    let mut seats: Vec<i32> = lines
+        .iter()
+        .map(|line| {
+            let row_part = line.get(0..7).expect("error").to_string();
+            let col_part = line.get(7..).expect("error").to_string();
+            let row = compute(row_part, 0, 127);
+            let col = compute(col_part, 0, 7);
+            row * 8 + col
+        })
+        .collect();
     seats.sort();
-    let mut my_seat = 0;
-    for (i, seat) in seats.iter().enumerate() {
-        if i == 0 {
-            continue;
-        }
-        let adj_seat = seats[i - 1];
-        let ds = (seat - adj_seat).abs();
-        if ds == 2 {
-            my_seat = adj_seat + 1;
-        }
-    }
-    println!("Highest ID {}", seats[seats.len() - 1]);
-    println!("My seat ID {}", my_seat);
+    let ans1 = seats[seats.len() - 1];
+    let ans2 = seats
+        .iter()
+        .skip(1)
+        .enumerate()
+        .find(|(i, &seat)| (seat - seats[*i]) == 2)
+        .map(|(_, seat)| seat - 1)
+        .unwrap();
+    println!("Answer 1 {}", ans1);
+    println!("Answer 2 {}", ans2);
 }
 
 fn compute(part: String, low: i32, hi: i32) -> i32 {
@@ -44,10 +41,6 @@ fn compute(part: String, low: i32, hi: i32) -> i32 {
     } else {
         compute(part.get(1..).expect("no str").to_string(), mid + 1, hi)
     }
-}
-
-fn compute_seat_id(row: i32, col: i32) -> i32 {
-    row * 8 + col
 }
 
 fn read_lines_as_str<P>(filename: P) -> Vec<String>
