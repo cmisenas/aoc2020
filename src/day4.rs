@@ -1,22 +1,28 @@
+extern crate itertools;
 extern crate regex;
 
+use self::itertools::Itertools;
 use self::regex::Regex;
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
 
 pub fn main() {
-    let lines = read_lines_as_str("./day4.input");
-    let mut valid_pp = 0;
-    let mut curr_pp = "".to_string();
-    for (i, line) in lines.iter().enumerate() {
-        if line == "" || i + 1 == lines.len() {
-            if i + 1 == lines.len() {
-                curr_pp.push_str("\n");
-                curr_pp.push_str(&line);
+    let mut lines = read_lines_as_str("./day4.input");
+    // Add an empty string at the end
+    lines.push(String::from(""));
+    /*
+    Old solution
+    let mut ans1 = 0;
+    let mut ans2 = 0;
+    let mut curr_pp = String::from("");
+    for line in lines.iter() {
+        if line == "" {
+            if solve1(&curr_pp) {
+                ans1 += 1;
             }
-            if is_valid_pp(curr_pp.to_string()) {
-                valid_pp = valid_pp + 1;
+            if solve2(&curr_pp) {
+                ans2 += 1;
             }
             curr_pp.clear();
         } else {
@@ -24,10 +30,51 @@ pub fn main() {
             curr_pp.push_str(&line);
         }
     }
-    println!("valid passports: {}", valid_pp);
+    */
+    let passports: &Vec<String> = &lines
+        .into_iter()
+        .group_by(|line| line != "")
+        .into_iter()
+        .filter_map(|(not_empty, mut passport)| {
+            if not_empty {
+                Some(passport.join("\n"))
+            } else {
+                None
+            }
+        })
+        //.filter(|(not_empty, _)| *not_empty)
+        //.map(|(_, mut passport)| passport.join("\n"))
+        .collect();
+    let ans1 = passports
+        .into_iter()
+        .filter(|passport| solve1(passport))
+        .count();
+    let ans2 = passports
+        .into_iter()
+        .filter(|passport| solve2(passport))
+        .count();
+    println!("Answer 1: {} ", ans1);
+    println!("Answer 2: {} ", ans2);
 }
 
-fn is_valid_pp(pp: String) -> bool {
+fn solve1(pp: &String) -> bool {
+    let byr = "byr";
+    let hgt = "hgt";
+    let iyr = "iyr";
+    let eyr = "eyr";
+    let hcl = "hcl";
+    let ecl = "ecl";
+    let pid = "pid";
+    return pp.contains(byr)
+        && pp.contains(hgt)
+        && pp.contains(iyr)
+        && pp.contains(eyr)
+        && pp.contains(hcl)
+        && pp.contains(ecl)
+        && pp.contains(pid);
+}
+
+fn solve2(pp: &String) -> bool {
     let byr = Regex::new(r"\bbyr:(19[2-9]\d|200[0-2])\b").unwrap();
     let hgt = Regex::new(r"\bhgt:(1([5-8]\d|9[0-3])cm|(59|6\d|7[0-6])in)\b").unwrap();
     let iyr = Regex::new(r"\biyr:20(1\d|20)\b").unwrap();
