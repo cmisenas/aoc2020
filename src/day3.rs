@@ -9,31 +9,17 @@ pub fn main() {
     let s3 = get_trees_enc(5, 1, &lines);
     let s4 = get_trees_enc(7, 1, &lines);
     let s5 = get_trees_enc(1, 2, &lines);
-    println!(
-        "{} * {} * {} * {} * {} = {}",
-        s1,
-        s2,
-        s3,
-        s4,
-        s5,
-        s1 * s2 * s3 * s4 * s5
-    );
+    println!("Answer 1 {}", s2);
+    println!("Answer 2 {}", s1 * s2 * s3 * s4 * s5);
 }
 
 fn get_trees_enc(right: usize, down: usize, lines: &Vec<String>) -> usize {
-    let mut row = 0;
-    let mut col = 0;
-    let mut trees = 0;
-    let len = lines[0].len();
-    let end_row = lines.len() - 1;
-    while row != end_row {
-        row = row + down;
-        col = (col + right) % len;
-        if lines[row].chars().nth(col).unwrap().to_string() == "#" {
-            trees = trees + 1;
-        }
-    }
-    return trees;
+    lines
+        .iter()
+        .step_by(down)
+        .enumerate()
+        .filter(|(i, l)| l.chars().nth((i * right) % l.len()).unwrap().to_string() == "#")
+        .count()
 }
 
 fn read_lines_as_str<P>(filename: P) -> Vec<String>
