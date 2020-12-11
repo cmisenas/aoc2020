@@ -3,33 +3,20 @@ use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
 
-// struct AdjSeats {
-//     down: Option<usize, usize>,
-//     up: Option<usize, usize>,
-//     left: Option<usize, usize>,
-//     right: Option<usize, usize>,
-//     nw: Option<usize, usize>,
-//     ne: Option<usize, usize>,
-//     sw: Option<usize, usize>,
-//     se: Option<usize, usize>,
-// }
-
 pub fn main() {
     let lines = read_lines_as_str("./day11.input");
-    let mut answer2 = 0;
 
-    let answer1 = solve1(lines);
-
+    let answer1 = solve1(&lines);
     println!("Answer 1 {}", answer1);
+    let answer2 = solve2(&lines);
     println!("Answer 2 {}", answer2);
 }
 
-fn solve1(layout: Vec<String>) -> usize {
-    let one_seat_round = seat_round(layout);
-    count_occupied_seats(one_seat_round)
+fn solve1(layout: &Vec<String>) -> usize {
+    count_occupied_seats(seat_round(layout))
 }
 
-fn seat_round(layout: Vec<String>) -> Vec<String> {
+fn seat_round(layout: &Vec<String>) -> Vec<String> {
     let mut current_row: String = "".to_string();
     let mut prev_layout: Vec<String> = layout.iter().cloned().collect();
     let mut new_layout: Vec<String> = Vec::new();
@@ -60,7 +47,7 @@ fn seat_round(layout: Vec<String>) -> Vec<String> {
 
 fn check_should_be_occupied(layout: &Vec<String>, r: usize, c: usize) -> bool {
     let adj_seats = get_adj_seats(layout.len(), layout[0].len(), r, c);
-    let condition = adj_seats.iter().all(|(k, pos)| {
+    let condition = adj_seats.iter().all(|(_, pos)| {
         if let Some((i, j)) = pos {
             let seat = layout[*i].chars().nth(*j).unwrap().to_string();
             seat != "#"
@@ -77,7 +64,7 @@ fn check_should_be_empty(layout: &Vec<String>, r: usize, c: usize) -> bool {
     let first_c = seat_str == "#";
     let second_c = adj_seats
         .iter()
-        .filter(|(k, pos)| {
+        .filter(|(_, pos)| {
             if let Some((i, j)) = pos {
                 let seat = layout[*i].chars().nth(*j).unwrap().to_string();
                 seat == "#"
@@ -169,16 +156,264 @@ fn get_adj_seats(
 }
 
 fn count_occupied_seats(layout: Vec<String>) -> usize {
-    layout
-        .iter()
-        //.fold(0, |acc, row| acc + row.chars().collect::<Vec<char>>().iter().filter(|r| r == "#").count())
-        .fold(0, |acc, row| {
-            acc + row.bytes().filter(|r| *r == b'#').count()
-        })
+    layout.iter().fold(0, |acc, row| {
+        acc + row.bytes().filter(|r| *r == b'#').count()
+    })
 }
 
-fn solve2() -> i32 {
-    0
+fn solve2(layout: &Vec<String>) -> usize {
+    count_occupied_seats(seat_round2(layout))
+}
+
+fn seat_round2(layout: &Vec<String>) -> Vec<String> {
+    let mut current_row: String = "".to_string();
+    let mut prev_layout: Vec<String> = layout.iter().cloned().collect();
+    let mut new_layout: Vec<String> = Vec::new();
+    let mut started = false;
+    while !started || !new_layout.eq(&prev_layout) {
+        if !started {
+            started = true;
+        } else {
+            prev_layout = new_layout.iter().cloned().collect();
+        }
+        new_layout = Vec::new();
+        for (i, row) in prev_layout.iter().enumerate() {
+            for (j, seat) in row.chars().collect::<Vec<char>>().into_iter().enumerate() {
+                if seat.to_string() == "#" && check_should_be_empty2(&prev_layout, i, j) {
+                    current_row.push('L');
+                } else if seat.to_string() == "L" && check_should_be_occupied2(&prev_layout, i, j) {
+                    current_row.push('#');
+                } else {
+                    current_row.push(seat);
+                }
+            }
+            new_layout.push(current_row.to_string());
+            current_row.clear();
+        }
+    }
+    new_layout
+}
+
+fn check_should_be_occupied2(layout: &Vec<String>, r: usize, c: usize) -> bool {
+    let neighbors: Vec<bool> = vec![
+        is_n_empty(layout, r, c),
+        is_e_empty(layout, r, c),
+        is_s_empty(layout, r, c),
+        is_w_empty(layout, r, c),
+        is_ne_empty(layout, r, c),
+        is_se_empty(layout, r, c),
+        is_nw_empty(layout, r, c),
+        is_sw_empty(layout, r, c),
+    ];
+    let condition = neighbors.iter().all(|is_empty| *is_empty);
+    condition
+}
+
+fn check_should_be_empty2(layout: &Vec<String>, r: usize, c: usize) -> bool {
+    let neighbors: Vec<bool> = vec![
+        is_n_empty(layout, r, c),
+        is_e_empty(layout, r, c),
+        is_s_empty(layout, r, c),
+        is_w_empty(layout, r, c),
+        is_ne_empty(layout, r, c),
+        is_se_empty(layout, r, c),
+        is_nw_empty(layout, r, c),
+        is_sw_empty(layout, r, c),
+    ];
+    let seat_str = layout[r].chars().nth(c).unwrap().to_string();
+    let first_c = seat_str == "#";
+    let second_c = neighbors.iter().filter(|&&is_empty| !is_empty).count() >= 5;
+    first_c && second_c
+}
+
+fn is_n_empty(layout: &Vec<String>, r: usize, c: usize) -> bool {
+    let mut edge_not_hit = true;
+    let mut occupied_found = false;
+    let mut i = r as i32;
+    while edge_not_hit && !occupied_found {
+        i -= 1;
+        if i < 0 {
+            edge_not_hit = false;
+            continue;
+        }
+        let adj = layout[i as usize].chars().nth(c).unwrap().to_string();
+        if adj == "L" {
+            break;
+        } else {
+            occupied_found = adj == "#"
+        }
+    }
+    !occupied_found
+}
+
+fn is_s_empty(layout: &Vec<String>, r: usize, c: usize) -> bool {
+    let mut edge_not_hit = true;
+    let mut occupied_found = false;
+    let mut i = r as i32;
+    let h = layout.len() as i32;
+    while edge_not_hit && !occupied_found {
+        i += 1;
+        if i >= h {
+            edge_not_hit = false;
+            continue;
+        }
+        let adj = layout[i as usize].chars().nth(c).unwrap().to_string();
+        if adj == "L" {
+            break;
+        } else {
+            occupied_found = adj == "#"
+        }
+    }
+    !occupied_found
+}
+
+fn is_e_empty(layout: &Vec<String>, r: usize, c: usize) -> bool {
+    let mut edge_not_hit = true;
+    let mut occupied_found = false;
+    let mut j = c as i32;
+    let w = layout[0].len() as i32;
+    while edge_not_hit && !occupied_found {
+        j += 1;
+        if j >= w {
+            edge_not_hit = false;
+            continue;
+        }
+        let adj = layout[r].chars().nth(j as usize).unwrap().to_string();
+        if adj == "L" {
+            break;
+        } else {
+            occupied_found = adj == "#"
+        }
+    }
+    !occupied_found
+}
+
+fn is_w_empty(layout: &Vec<String>, r: usize, c: usize) -> bool {
+    let mut edge_not_hit = true;
+    let mut occupied_found = false;
+    let mut j = c as i32;
+    while edge_not_hit && !occupied_found {
+        j -= 1;
+        if j < 0 {
+            edge_not_hit = false;
+            continue;
+        }
+        let adj = layout[r].chars().nth(j as usize).unwrap().to_string();
+        if adj == "L" {
+            break;
+        } else {
+            occupied_found = adj == "#"
+        }
+    }
+    !occupied_found
+}
+
+fn is_se_empty(layout: &Vec<String>, r: usize, c: usize) -> bool {
+    let mut edge_not_hit = true;
+    let mut occupied_found = false;
+    let mut i = r as i32;
+    let mut j = c as i32;
+    let h = layout.len() as i32;
+    let w = layout[0].len() as i32;
+    while edge_not_hit && !occupied_found {
+        i += 1;
+        j += 1;
+        if i >= h || j >= w {
+            edge_not_hit = false;
+            continue;
+        }
+        let adj = layout[i as usize]
+            .chars()
+            .nth(j as usize)
+            .unwrap()
+            .to_string();
+        if adj == "L" {
+            break;
+        } else {
+            occupied_found = adj == "#"
+        }
+    }
+    !occupied_found
+}
+
+fn is_sw_empty(layout: &Vec<String>, r: usize, c: usize) -> bool {
+    let mut edge_not_hit = true;
+    let mut occupied_found = false;
+    let mut i = r as i32;
+    let mut j = c as i32;
+    let h = layout.len() as i32;
+    while edge_not_hit && !occupied_found {
+        i += 1;
+        j -= 1;
+        if i >= h || j < 0 {
+            edge_not_hit = false;
+            continue;
+        }
+        let adj = layout[i as usize]
+            .chars()
+            .nth(j as usize)
+            .unwrap()
+            .to_string();
+        if adj == "L" {
+            break;
+        } else {
+            occupied_found = adj == "#"
+        }
+    }
+    !occupied_found
+}
+
+fn is_nw_empty(layout: &Vec<String>, r: usize, c: usize) -> bool {
+    let mut edge_not_hit = true;
+    let mut occupied_found = false;
+    let mut i = r as i32;
+    let mut j = c as i32;
+    while edge_not_hit && !occupied_found {
+        i -= 1;
+        j -= 1;
+        if i < 0 || j < 0 {
+            edge_not_hit = false;
+            continue;
+        }
+        let adj = layout[i as usize]
+            .chars()
+            .nth(j as usize)
+            .unwrap()
+            .to_string();
+        if adj == "L" {
+            break;
+        } else {
+            occupied_found = adj == "#"
+        }
+    }
+    !occupied_found
+}
+
+fn is_ne_empty(layout: &Vec<String>, r: usize, c: usize) -> bool {
+    let mut edge_not_hit = true;
+    let mut occupied_found = false;
+    let mut i = r as i32;
+    let mut j = c as i32;
+    let w = layout[0].len() as i32;
+    while edge_not_hit && !occupied_found {
+        i -= 1;
+        j += 1;
+        if i < 0 || j >= w {
+            edge_not_hit = false;
+            continue;
+        }
+        let adj = layout[i as usize]
+            .chars()
+            .nth(j as usize)
+            .unwrap()
+            .to_string();
+        if adj == "L" {
+            break;
+        } else {
+            occupied_found = adj == "#"
+        }
+    }
+    !occupied_found
 }
 
 fn read_lines_as_str<P>(filename: P) -> Vec<String>
@@ -189,16 +424,5 @@ where
     let buf = io::BufReader::new(file);
     buf.lines()
         .map(|l| l.expect("Could not parse line"))
-        .collect()
-}
-
-fn read_lines_as_int<P>(filename: P) -> Vec<i64>
-where
-    P: AsRef<Path>,
-{
-    let file = File::open(filename).expect("no such file");
-    let buf = io::BufReader::new(file);
-    buf.lines()
-        .map(|l| l.expect("Could not parse line").parse::<i64>().unwrap())
         .collect()
 }
