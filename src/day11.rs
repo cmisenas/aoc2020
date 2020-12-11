@@ -179,9 +179,20 @@ fn seat_round2(layout: &Vec<String>) -> Vec<String> {
         new_layout = Vec::new();
         for (i, row) in prev_layout.iter().enumerate() {
             for (j, seat) in row.chars().collect::<Vec<char>>().into_iter().enumerate() {
-                if seat.to_string() == "#" && check_should_be_empty2(&prev_layout, i, j) {
+                let neighbors: Vec<bool> = vec![
+                    check_dir_is_empty(&prev_layout, (i, j), (-1, 0)),
+                    check_dir_is_empty(&prev_layout, (i, j), (0, 1)),
+                    check_dir_is_empty(&prev_layout, (i, j), (1, 0)),
+                    check_dir_is_empty(&prev_layout, (i, j), (0, -1)),
+                    check_dir_is_empty(&prev_layout, (i, j), (-1, 1)),
+                    check_dir_is_empty(&prev_layout, (i, j), (-1, -1)),
+                    check_dir_is_empty(&prev_layout, (i, j), (1, 1)),
+                    check_dir_is_empty(&prev_layout, (i, j), (1, -1)),
+                ];
+                let not_empty_count = neighbors.iter().filter(|&&is_empty| !is_empty).count();
+                if seat.to_string() == "#" && not_empty_count >= 5 {
                     current_row.push('L');
-                } else if seat.to_string() == "L" && check_should_be_occupied2(&prev_layout, i, j) {
+                } else if seat.to_string() == "L" && not_empty_count == 0 {
                     current_row.push('#');
                 } else {
                     current_row.push(seat);
@@ -194,223 +205,29 @@ fn seat_round2(layout: &Vec<String>) -> Vec<String> {
     new_layout
 }
 
-fn check_should_be_occupied2(layout: &Vec<String>, r: usize, c: usize) -> bool {
-    let neighbors: Vec<bool> = vec![
-        is_n_empty(layout, r, c),
-        is_e_empty(layout, r, c),
-        is_s_empty(layout, r, c),
-        is_w_empty(layout, r, c),
-        is_ne_empty(layout, r, c),
-        is_se_empty(layout, r, c),
-        is_nw_empty(layout, r, c),
-        is_sw_empty(layout, r, c),
-    ];
-    let condition = neighbors.iter().all(|is_empty| *is_empty);
-    condition
-}
-
-fn check_should_be_empty2(layout: &Vec<String>, r: usize, c: usize) -> bool {
-    let neighbors: Vec<bool> = vec![
-        is_n_empty(layout, r, c),
-        is_e_empty(layout, r, c),
-        is_s_empty(layout, r, c),
-        is_w_empty(layout, r, c),
-        is_ne_empty(layout, r, c),
-        is_se_empty(layout, r, c),
-        is_nw_empty(layout, r, c),
-        is_sw_empty(layout, r, c),
-    ];
-    let seat_str = layout[r].chars().nth(c).unwrap().to_string();
-    let first_c = seat_str == "#";
-    let second_c = neighbors.iter().filter(|&&is_empty| !is_empty).count() >= 5;
-    first_c && second_c
-}
-
-fn is_n_empty(layout: &Vec<String>, r: usize, c: usize) -> bool {
+fn check_dir_is_empty(layout: &Vec<String>, index: (usize, usize), diff: (i32, i32)) -> bool {
     let mut edge_not_hit = true;
     let mut occupied_found = false;
-    let mut i = r as i32;
-    while edge_not_hit && !occupied_found {
-        i -= 1;
-        if i < 0 {
-            edge_not_hit = false;
-            continue;
-        }
-        let adj = layout[i as usize].chars().nth(c).unwrap().to_string();
-        if adj == "L" {
-            break;
-        } else {
-            occupied_found = adj == "#"
-        }
-    }
-    !occupied_found
-}
-
-fn is_s_empty(layout: &Vec<String>, r: usize, c: usize) -> bool {
-    let mut edge_not_hit = true;
-    let mut occupied_found = false;
-    let mut i = r as i32;
-    let h = layout.len() as i32;
-    while edge_not_hit && !occupied_found {
-        i += 1;
-        if i >= h {
-            edge_not_hit = false;
-            continue;
-        }
-        let adj = layout[i as usize].chars().nth(c).unwrap().to_string();
-        if adj == "L" {
-            break;
-        } else {
-            occupied_found = adj == "#"
-        }
-    }
-    !occupied_found
-}
-
-fn is_e_empty(layout: &Vec<String>, r: usize, c: usize) -> bool {
-    let mut edge_not_hit = true;
-    let mut occupied_found = false;
-    let mut j = c as i32;
-    let w = layout[0].len() as i32;
-    while edge_not_hit && !occupied_found {
-        j += 1;
-        if j >= w {
-            edge_not_hit = false;
-            continue;
-        }
-        let adj = layout[r].chars().nth(j as usize).unwrap().to_string();
-        if adj == "L" {
-            break;
-        } else {
-            occupied_found = adj == "#"
-        }
-    }
-    !occupied_found
-}
-
-fn is_w_empty(layout: &Vec<String>, r: usize, c: usize) -> bool {
-    let mut edge_not_hit = true;
-    let mut occupied_found = false;
-    let mut j = c as i32;
-    while edge_not_hit && !occupied_found {
-        j -= 1;
-        if j < 0 {
-            edge_not_hit = false;
-            continue;
-        }
-        let adj = layout[r].chars().nth(j as usize).unwrap().to_string();
-        if adj == "L" {
-            break;
-        } else {
-            occupied_found = adj == "#"
-        }
-    }
-    !occupied_found
-}
-
-fn is_se_empty(layout: &Vec<String>, r: usize, c: usize) -> bool {
-    let mut edge_not_hit = true;
-    let mut occupied_found = false;
-    let mut i = r as i32;
-    let mut j = c as i32;
+    let mut i = index.0 as i32;
+    let mut j = index.1 as i32;
     let h = layout.len() as i32;
     let w = layout[0].len() as i32;
     while edge_not_hit && !occupied_found {
-        i += 1;
-        j += 1;
-        if i >= h || j >= w {
+        i += diff.0 as i32;
+        j += diff.1 as i32;
+        if i < 0 || i >= h || j < 0 || j >= w {
             edge_not_hit = false;
             continue;
         }
-        let adj = layout[i as usize]
+        let adj_seat = layout[i as usize]
             .chars()
             .nth(j as usize)
             .unwrap()
             .to_string();
-        if adj == "L" {
+        if adj_seat == "L" {
             break;
         } else {
-            occupied_found = adj == "#"
-        }
-    }
-    !occupied_found
-}
-
-fn is_sw_empty(layout: &Vec<String>, r: usize, c: usize) -> bool {
-    let mut edge_not_hit = true;
-    let mut occupied_found = false;
-    let mut i = r as i32;
-    let mut j = c as i32;
-    let h = layout.len() as i32;
-    while edge_not_hit && !occupied_found {
-        i += 1;
-        j -= 1;
-        if i >= h || j < 0 {
-            edge_not_hit = false;
-            continue;
-        }
-        let adj = layout[i as usize]
-            .chars()
-            .nth(j as usize)
-            .unwrap()
-            .to_string();
-        if adj == "L" {
-            break;
-        } else {
-            occupied_found = adj == "#"
-        }
-    }
-    !occupied_found
-}
-
-fn is_nw_empty(layout: &Vec<String>, r: usize, c: usize) -> bool {
-    let mut edge_not_hit = true;
-    let mut occupied_found = false;
-    let mut i = r as i32;
-    let mut j = c as i32;
-    while edge_not_hit && !occupied_found {
-        i -= 1;
-        j -= 1;
-        if i < 0 || j < 0 {
-            edge_not_hit = false;
-            continue;
-        }
-        let adj = layout[i as usize]
-            .chars()
-            .nth(j as usize)
-            .unwrap()
-            .to_string();
-        if adj == "L" {
-            break;
-        } else {
-            occupied_found = adj == "#"
-        }
-    }
-    !occupied_found
-}
-
-fn is_ne_empty(layout: &Vec<String>, r: usize, c: usize) -> bool {
-    let mut edge_not_hit = true;
-    let mut occupied_found = false;
-    let mut i = r as i32;
-    let mut j = c as i32;
-    let w = layout[0].len() as i32;
-    while edge_not_hit && !occupied_found {
-        i -= 1;
-        j += 1;
-        if i < 0 || j >= w {
-            edge_not_hit = false;
-            continue;
-        }
-        let adj = layout[i as usize]
-            .chars()
-            .nth(j as usize)
-            .unwrap()
-            .to_string();
-        if adj == "L" {
-            break;
-        } else {
-            occupied_found = adj == "#"
+            occupied_found = adj_seat == "#"
         }
     }
     !occupied_found
