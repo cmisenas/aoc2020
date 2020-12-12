@@ -19,14 +19,14 @@ use std::path::Path;
 
 pub fn main() {
     let lines = read_lines_as_str("./day12.input");
-    let answer1 = solve1(lines);
-    let mut answer2 = 0;
+    let answer1 = solve1(&lines);
+    let answer2 = solve2(&lines);
 
     println!("Answer 1 {}", answer1);
     println!("Answer 2 {}", answer2);
 }
 
-fn solve1(instructions: Vec<String>) -> i32 {
+fn solve1(instructions: &Vec<String>) -> i32 {
     let N = "N".to_string();
     let E = "E".to_string();
     let S = "S".to_string();
@@ -104,8 +104,76 @@ fn rotate_dir(start_dir: &String, deg: i32, counter_clockwise: bool) -> String {
     }
 }
 
-fn solve2() -> i32 {
-    0
+fn solve2(instructions: &Vec<String>) -> i64 {
+    let N = "N".to_string();
+    let E = "E".to_string();
+    let S = "S".to_string();
+    let W = "W".to_string();
+    let L = "L".to_string();
+    let R = "R".to_string();
+    let F = "F".to_string();
+    let mut waypoint = (10, -1);
+    let mut ship = (0, 0);
+    for line in instructions.iter() {
+        let ins = line.to_string().chars().nth(0).unwrap().to_string();
+        let units = line
+            .to_string()
+            .chars()
+            .skip(1)
+            .collect::<String>()
+            .parse::<i64>()
+            .unwrap();
+        if ins == F {
+            ship = (ship.0 + (waypoint.0 * units), ship.1 + (waypoint.1 * units));
+        } else if ins == N {
+            waypoint = (waypoint.0, waypoint.1 - units);
+        } else if ins == E {
+            waypoint = (waypoint.0 + units, waypoint.1);
+        } else if ins == S {
+            waypoint = (waypoint.0, waypoint.1 + units);
+        } else if ins == W {
+            waypoint = (waypoint.0 - units, waypoint.1);
+        } else if ins == L {
+            waypoint = rotate_waypoint_dir(&waypoint, units, true);
+        } else if ins == R {
+            waypoint = rotate_waypoint_dir(&waypoint, units, false);
+        }
+    }
+
+    ship.0.abs() + ship.1.abs()
+}
+
+fn rotate_waypoint_dir(waypoint: &(i64, i64), deg: i64, counter_clockwise: bool) -> (i64, i64) {
+    let turn_deg = deg % 360;
+    if (turn_deg == 90 && !counter_clockwise) || (turn_deg == 270 && counter_clockwise) {
+        if waypoint.0 >= 0 && waypoint.1 >= 0 {
+            (-waypoint.1, waypoint.0)
+        } else if waypoint.0 < 0 && waypoint.1 >= 0 {
+            (-waypoint.1, waypoint.0)
+        } else if waypoint.0 < 0 && waypoint.1 < 0 {
+            (waypoint.1.abs(), waypoint.0)
+        } else if waypoint.0 >= 1 && waypoint.1 < 0 {
+            (waypoint.1.abs(), waypoint.0.abs())
+        } else {
+            (waypoint.0, waypoint.1)
+        }
+    } else if turn_deg == 180 {
+        (-waypoint.0, -waypoint.1)
+    } else if (turn_deg == 90 && counter_clockwise) || (turn_deg == 270 && !counter_clockwise) {
+        if waypoint.0 >= 0 && waypoint.1 >= 0 {
+            (waypoint.1, -waypoint.0)
+        } else if waypoint.0 < 0 && waypoint.1 >= 0 {
+            (waypoint.1, waypoint.0.abs())
+        } else if waypoint.0 < 0 && waypoint.1 < 0 {
+            (waypoint.1, waypoint.0.abs())
+        } else if waypoint.0 >= 1 && waypoint.1 < 0 {
+            (waypoint.1, -waypoint.0)
+        } else {
+            (waypoint.0, waypoint.1)
+        }
+    } else {
+        (waypoint.0, waypoint.1)
+    }
 }
 
 fn read_lines_as_str<P>(filename: P) -> Vec<String>
