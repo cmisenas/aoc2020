@@ -5,7 +5,7 @@ use std::path::Path;
 pub fn main() {
     let lines = read_lines_as_str("./day13.input");
     let earliest = lines.iter().nth(0).unwrap().parse::<i64>().unwrap();
-    let bus_times: Vec<i64> = lines
+    let valid_bus_times: Vec<i64> = lines
         .iter()
         .nth(1)
         .unwrap()
@@ -13,7 +13,22 @@ pub fn main() {
         .filter(|&t| t != "x")
         .map(|t| t.parse::<i64>().unwrap())
         .collect();
-    let answer1 = solve1(earliest, &bus_times);
+    let bus_times: Vec<(usize, i64)> = lines
+        .iter()
+        .nth(1)
+        .unwrap()
+        .split(",")
+        .enumerate()
+        .filter_map(|(i, t)| {
+            if t != "x" {
+                Some((i, t.parse::<i64>().unwrap()))
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    let answer1 = solve1(earliest, &valid_bus_times);
     println!("Answer 1 {}", answer1);
     let answer2 = solve2(&bus_times);
     println!("Answer 2 {}", answer2);
@@ -35,8 +50,18 @@ fn solve1(earliest: i64, bus_times: &Vec<i64>) -> i64 {
     earliest_bus_id * (earliest_bus_time - earliest)
 }
 
-fn solve2(bus_times: &Vec<i64>) -> i64 {
-    0
+fn solve2(bus_times: &Vec<(usize, i64)>) -> i64 {
+    let mut timestamp = 0;
+    let mut prod = 1;
+    for (i, b) in bus_times.iter() {
+        while (timestamp + *i as i64) % b != 0 {
+            timestamp += prod;
+        }
+        prod *= *b as i64;
+        println!("Timestamp {}", timestamp);
+        println!("Prod {}", prod);
+    }
+    timestamp
 }
 
 fn read_lines_as_str<P>(filename: P) -> Vec<String>
