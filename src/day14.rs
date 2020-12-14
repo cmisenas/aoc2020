@@ -1,3 +1,6 @@
+extern crate itertools;
+
+use self::itertools::Itertools;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{self, BufRead};
@@ -5,41 +8,48 @@ use std::path::Path;
 
 pub fn main() {
     let lines = read_lines_as_str("./day14.input");
-    let answer1 = solve1(&lines);
+    let (answer1, answer2) = solve(&lines);
     println!("Answer 1 {}", answer1);
-    let answer2 = solve2(&lines);
     println!("Answer 2 {}", answer2);
 }
 
-fn solve1(lines: &Vec<String>) -> usize {
-    let mut sum = 0;
-    let mut current_bitmask = String::from("");
-    let mut bitmask_group: Vec<String> = Vec::new();
-    let mut memory: HashMap<usize, usize> = HashMap::new();
-    for (index, line) in lines.iter().enumerate() {
-        if line.contains("mask =") && bitmask_group.len() == 0 {
-            current_bitmask = line.strip_prefix("mask = ").unwrap().to_string();
-        } else if index == lines.len() - 1
-            || lines.iter().nth(index + 1).unwrap().contains("mask =")
-        {
-            bitmask_group.push(line.to_string());
-            for write_bit in bitmask_group.iter() {
-                let (key, val) = parse_bitmask(current_bitmask.to_string(), write_bit.to_string());
-                memory.insert(key, val);
+fn solve(lines: &Vec<String>) -> (usize, usize) {
+    let mut memory1: HashMap<usize, usize> = HashMap::new();
+    let mut memory2: HashMap<usize, usize> = HashMap::new();
+    let mask_groups: &Vec<Vec<String>> = &lines
+        .into_iter()
+        .enumerate()
+        .group_by(|(_, line)| line.contains("mask ="))
+        .into_iter()
+        .map(|(_, bgroup)| {
+            bgroup
+                .into_iter()
+                .map(|(_, b)| b.to_string())
+                .collect::<Vec<String>>()
+        })
+        .collect();
+    for (i, current_bitmask) in mask_groups.iter().enumerate().step_by(2) {
+        let bitmask_group = &mask_groups.iter().nth(i + 1).unwrap();
+        let parsed_bitmask = current_bitmask[0]
+            .strip_prefix("mask = ")
+            .unwrap()
+            .to_string();
+        for write_bit in bitmask_group.iter() {
+            let (key, val) = parse_bitmask(&parsed_bitmask, write_bit.to_string());
+            memory1.insert(key, val);
+            let (addrs, val) = parse_bitmask2(&parsed_bitmask, write_bit.to_string());
+            for addr in addrs.iter() {
+                memory2.insert(*addr, val);
             }
-            bitmask_group.clear();
-        } else {
-            bitmask_group.push(line.to_string());
         }
     }
-
-    for (_, mem) in memory {
-        sum += mem;
-    }
-    sum
+    (
+        memory1.iter().fold(0, |acc, (_, mem)| acc + mem),
+        memory2.iter().fold(0, |acc, (_, mem)| acc + mem),
+    )
 }
 
-fn parse_bitmask(bitmask: String, write_bit: String) -> (usize, usize) {
+fn parse_bitmask(bitmask: &String, write_bit: String) -> (usize, usize) {
     let parse_write_bit: Vec<&str> = write_bit.split("] = ").collect();
     let mem_addr: usize = parse_write_bit[0]
         .strip_prefix("mem[")
@@ -52,46 +62,13 @@ fn parse_bitmask(bitmask: String, write_bit: String) -> (usize, usize) {
     let mut binary_val = format!("{:036b}", val);
     for (index, bit) in bitmask.chars().enumerate() {
         if bit != 'X' {
-            let mut tmp_binary_val: Vec<char> = binary_val.chars().collect::<Vec<char>>();
-            tmp_binary_val[index] = bit;
-            binary_val = tmp_binary_val.into_iter().collect::<String>();
+            binary_val = replace_char_in_str(binary_val, bit, index);
         }
     }
     (mem_addr, usize::from_str_radix(&binary_val, 2).unwrap())
 }
 
-fn solve2(lines: &Vec<String>) -> usize {
-    let mut sum = 0;
-    let mut current_bitmask = String::from("");
-    let mut bitmask_group: Vec<String> = Vec::new();
-    let mut memory: HashMap<usize, usize> = HashMap::new();
-    for (index, line) in lines.iter().enumerate() {
-        if line.contains("mask =") && bitmask_group.len() == 0 {
-            current_bitmask = line.strip_prefix("mask = ").unwrap().to_string();
-        } else if index == lines.len() - 1
-            || lines.iter().nth(index + 1).unwrap().contains("mask =")
-        {
-            bitmask_group.push(line.to_string());
-            for write_bit in bitmask_group.iter() {
-                let (addrs, val) =
-                    parse_bitmask2(current_bitmask.to_string(), write_bit.to_string());
-                for addr in addrs.iter() {
-                    memory.insert(*addr, val);
-                }
-            }
-            bitmask_group.clear();
-        } else {
-            bitmask_group.push(line.to_string());
-        }
-    }
-
-    for (_, mem) in memory {
-        sum += mem;
-    }
-    sum
-}
-
-fn parse_bitmask2(bitmask: String, write_bit: String) -> (Vec<usize>, usize) {
+fn parse_bitmask2(bitmask: &String, write_bit: String) -> (Vec<usize>, usize) {
     let parse_write_bit: Vec<&str> = write_bit.split("] = ").collect();
     let mem_addr: usize = parse_write_bit[0]
         .strip_prefix("mem[")
@@ -151,13 +128,3 @@ where
         .map(|l| l.expect("Could not parse line"))
         .collect()
 }
-
-// #[test]
-// fn check_solve_1_sample() {
-//     // assert_eq!(solve1(), );
-// }
-//
-// #[test]
-// fn check_solve_2_sample() {
-//     // assert_eq!(solve1(), );
-// }
