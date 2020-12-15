@@ -11,7 +11,7 @@ pub fn main() {
 }
 
 fn solve(line: &String) -> (usize, usize) {
-    let mut numbers: Vec<usize> = line
+    let numbers: Vec<usize> = line
         .split(",")
         .map(|l| l.parse::<usize>().expect("unable to parse int"))
         .collect();
@@ -21,20 +21,20 @@ fn solve(line: &String) -> (usize, usize) {
     for (i, n) in numbers.iter().enumerate() {
         mem.insert(*n, i + 1);
     }
-    for i in numbers.len()..30000000 {
-        let prev_n = numbers[i - 1];
-        let next_n = if mem.contains_key(&prev_n) && i > initial_len {
-            i - mem.get(&prev_n).unwrap()
+    let mut prev_n = numbers[initial_len - 1];
+    for i in initial_len..30000000 {
+        let next_n = if let Some(val) = mem.get(&prev_n) {
+            i - val
         } else {
             0
         };
-        numbers.push(next_n);
         mem.insert(prev_n, i);
         if i == 2019 {
             ans1 = next_n;
         }
+        prev_n = next_n;
     }
-    (ans1, numbers[numbers.len() - 1])
+    (ans1, prev_n)
 }
 
 fn read_lines_as_str<P>(filename: P) -> Vec<String>
