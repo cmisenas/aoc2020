@@ -5,37 +5,36 @@ use std::path::Path;
 
 pub fn main() {
     let lines = read_lines_as_str("./day15.input");
-    let answer1 = solve1(&lines[0]);
+    let (answer1, answer2) = solve(&lines[0]);
     println!("Answer 1 {}", answer1);
-    //let answer2 = solve2(&line);
-    //println!("Answer 2 {}", answer2);
+    println!("Answer 2 {}", answer2);
 }
 
-fn solve1(line: &String) -> usize {
+fn solve(line: &String) -> (usize, usize) {
     let mut numbers: Vec<usize> = line
         .split(",")
         .map(|l| l.parse::<usize>().expect("unable to parse int"))
         .collect();
+    let mut ans1 = 0;
     let initial_len = numbers.len();
     let mut mem: HashMap<usize, usize> = HashMap::new();
     for (i, n) in numbers.iter().enumerate() {
         mem.insert(*n, i + 1);
     }
-    for i in numbers.len()..2020 {
+    for i in numbers.len()..30000000 {
         let prev_n = numbers[i - 1];
-        if mem.contains_key(&prev_n) && i > initial_len {
-            let next_n = i - mem.get(&prev_n).unwrap();
-            numbers.push(next_n);
+        let next_n = if mem.contains_key(&prev_n) && i > initial_len {
+            i - mem.get(&prev_n).unwrap()
         } else {
-            numbers.push(0);
-        }
+            0
+        };
+        numbers.push(next_n);
         mem.insert(prev_n, i);
+        if i == 2019 {
+            ans1 = next_n;
+        }
     }
-    numbers[numbers.len() - 1]
-}
-
-fn solve2(lines: &Vec<String>) -> i32 {
-    0
+    (ans1, numbers[numbers.len() - 1])
 }
 
 fn read_lines_as_str<P>(filename: P) -> Vec<String>
