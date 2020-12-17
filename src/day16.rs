@@ -8,144 +8,124 @@ use std::path::Path;
 
 pub fn main() {
     let lines = read_lines_as_str("./day16.input");
-    let grouped_lines: &Vec<Vec<String>> = &lines
+    let grouped_lines = &lines
         .into_iter()
         .group_by(|line| line == "")
         .into_iter()
-        .filter_map(|(is_empty, line)| {
-            if is_empty {
-                None
-            } else {
-                Some(line.into_iter().collect::<Vec<String>>())
-            }
+        .filter_map(|(is_empty, line)| match !is_empty {
+            true => Some(line.into_iter().collect::<Vec<String>>()),
+            _ => None,
         })
-        .collect();
-    let rule_names: Vec<String> = grouped_lines[0]
-        .clone()
-        .into_iter()
-        .map(|rule| rule.split(": ").nth(0).unwrap().to_string())
-        .collect::<Vec<String>>();
-    let rules: Vec<Vec<(usize, usize)>> = grouped_lines[0]
+        .collect::<Vec<Vec<String>>>();
+    let rules = grouped_lines[0]
         .clone()
         .into_iter()
         .map(|rule| {
-            rule.split(": ")
-                .nth(1)
-                .unwrap()
-                .split(" or ")
-                .map(|s| {
-                    let parse: Vec<usize> = s
-                        .split("-")
-                        .map(|i| i.parse::<usize>().expect("unable to parse int"))
-                        .collect();
-                    (parse[0], parse[1])
-                })
-                .collect::<Vec<(usize, usize)>>()
+            let split_rule = rule.split(": ").collect::<Vec<&str>>();
+            (
+                split_rule[0].to_string(),
+                split_rule[1]
+                    .split(" or ")
+                    .map(|s| {
+                        let parse: Vec<usize> = s
+                            .split("-")
+                            .map(|i| i.parse::<usize>().expect("unable to parse int"))
+                            .collect();
+                        (parse[0], parse[1])
+                    })
+                    .collect::<Vec<(usize, usize)>>(),
+            )
         })
-        .collect();
-    let my_ticket: Vec<usize> = grouped_lines[1][1]
+        .collect::<Vec<(String, Vec<(usize, usize)>)>>();
+    let my_ticket = grouped_lines[1][1]
         .split(",")
         .map(|i| i.parse::<usize>().expect("unable to parse int"))
-        .collect();
-    let nearby_tickets: Vec<String> = grouped_lines[2][1..].to_vec();
+        .collect::<Vec<usize>>();
+    let nearby_tickets = grouped_lines[2][1..]
+        .to_vec()
+        .iter()
+        .map(|t| {
+            t.split(",")
+                .map(|v| v.parse::<usize>().expect("invalid int"))
+                .collect::<Vec<usize>>()
+        })
+        .collect::<Vec<Vec<usize>>>();
 
     let answer1 = solve1(&rules, &nearby_tickets);
     println!("Answer 1 {}", answer1);
-
-    let answer2 = solve2(&my_ticket, &rule_names, &rules, &nearby_tickets);
+    let answer2 = solve2(&my_ticket, &rules, &nearby_tickets);
     println!("Answer 2 {}", answer2);
 }
 
-fn solve1(rules: &Vec<Vec<(usize, usize)>>, tickets: &Vec<String>) -> usize {
-    let mut invalid = 0;
-    for ticket in tickets {
-        let vals = ticket
-            .split(",")
-            .map(|v| v.parse::<usize>().expect("invalid int"))
-            .collect::<Vec<usize>>();
-        for v in vals {
-            if !rules.iter().any(|rule| {
-                (v >= rule[0].0 && v <= rule[0].1) || (v >= rule[1].0 && v <= rule[1].1)
-            }) {
-                invalid += v;
-            }
-        }
-    }
-    invalid
+fn is_valid(val: usize, rule: &Vec<(usize, usize)>) -> bool {
+    (val >= rule[0].0 && val <= rule[0].1) || (val >= rule[1].0 && val <= rule[1].1)
+}
+
+fn solve1(rules: &Vec<(String, Vec<(usize, usize)>)>, tickets: &Vec<Vec<usize>>) -> usize {
+    tickets.iter().fold(0, |acc1, ticket| {
+        acc1 + ticket
+            .iter()
+            .filter_map(
+                |v| match !rules.iter().any(|(_, rule)| is_valid(*v, &rule)) {
+                    true => Some(v),
+                    _ => None,
+                },
+            )
+            .fold(0, |acc2, j| acc2 + j)
+    })
 }
 
 fn solve2(
-    my_ticket: &Vec<usize>,
-    rule_names: &Vec<String>,
-    rules: &Vec<Vec<(usize, usize)>>,
-    tickets: &Vec<String>,
+    my_t: &Vec<usize>,
+    rs: &Vec<(String, Vec<(usize, usize)>)>,
+    ts: &Vec<Vec<usize>>,
 ) -> usize {
-    let valid_tickets: Vec<Vec<usize>> = tickets
+    let valid_ts = ts
         .iter()
-        .filter_map(|ticket| {
-            let parsed_ticket = ticket
-                .split(",")
-                .map(|v| v.parse::<usize>().expect("invalid int"))
-                .collect::<Vec<usize>>();
-            if parsed_ticket.iter().all(|v| {
-                rules.into_iter().any(|rule| {
-                    (v >= &rule[0].0 && v <= &rule[0].1) || (v >= &rule[1].0 && v <= &rule[1].1)
-                })
-            }) {
-                Some(parsed_ticket)
-            } else {
-                None
+        .filter_map(|t| {
+            // t is ticket fields, f is a ticket field, rs is rules, r is a rule
+            match t.iter().all(|f| rs.iter().any(|(_, r)| is_valid(*f, &r))) {
+                true => Some(t),
+                _ => None,
             }
         })
-        .collect();
-    let mut per_field: Vec<(usize, Vec<usize>)> = (0..valid_tickets[0].len())
+        .collect::<Vec<&Vec<usize>>>();
+    let mut field_vals: Vec<(usize, Vec<usize>)> = (0..my_t.len())
         .into_iter()
         .map(|i| {
-            valid_tickets
-                .iter()
-                .map(|ticket| ticket[i])
-                .collect::<Vec<usize>>()
-        })
-        .enumerate()
-        .map(|(j, field_vals)| {
+            // Iterate all ticket values per field and check if all values in that field
+            // are valid for a rule. If so, that rule is a potential match to that field.
+            // Return index of the field value and indices of potential matches to rules.
             (
-                j,
-                rules
-                    .iter()
+                i,
+                rs.iter()
                     .enumerate()
-                    .filter(|(_, rule)| {
-                        field_vals.iter().all(|v| {
-                            (v >= &rule[0].0 && v <= &rule[0].1)
-                                || (v >= &rule[1].0 && v <= &rule[1].1)
-                        })
+                    .filter_map(|(j, (_, r))| {
+                        match valid_ts.iter().map(|t| t[i]).all(|v| is_valid(v, &r)) {
+                            true => Some(j as usize),
+                            _ => None,
+                        }
                     })
-                    .map(|(i, _)| i as usize)
                     .collect::<Vec<usize>>(),
             )
         })
         .collect::<Vec<(usize, Vec<usize>)>>();
-    per_field.sort_by(|a, b| a.1.len().cmp(&b.1.len()));
+    field_vals.sort_by(|a, b| a.1.len().cmp(&b.1.len()));
 
-    let mut result: usize = 1;
-    let mut claimed_rule_index: HashMap<usize, (usize, String)> = HashMap::new();
-    for (field_index, possible_vals) in per_field.iter() {
+    let mut rule_i: HashMap<usize, (usize, &str)> = HashMap::new();
+    for (field_index, possible_vals) in field_vals.iter() {
         let found_rule = possible_vals
             .iter()
-            .filter(|v| !claimed_rule_index.contains_key(&v))
-            .nth(0)
+            .find(|v| !rule_i.contains_key(&v))
             .unwrap();
-        claimed_rule_index.insert(
-            *found_rule,
-            (*field_index, rule_names[*found_rule].to_string()),
-        );
+        rule_i.insert(*found_rule, (*field_index, &rs[*found_rule].0));
     }
-    for (_, val) in claimed_rule_index.iter() {
-        if val.1.contains("departure") {
-            result *= my_ticket[val.0];
-        }
-    }
-
-    result
+    rule_i
+        .iter()
+        .fold(1, |a, (_, v)| match v.1.contains("departure") {
+            true => my_t[v.0] * a,
+            _ => a * 1,
+        })
 }
 
 fn read_lines_as_str<P>(filename: P) -> Vec<String>
