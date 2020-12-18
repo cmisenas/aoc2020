@@ -4,30 +4,27 @@ use std::path::Path;
 
 pub fn main() {
     let lines = read_lines_as_str("./day18.input");
-    let mut answer1 = solve1(&lines);
-    let mut answer2 = solve2(&lines);
-
+    let answer1 = solve1(&lines);
+    let answer2 = solve2(&lines);
     println!("Answer 1 {}", answer1);
     println!("Answer 2 {}", answer2);
 }
 
-fn parse_expr(terms: Vec<String>) -> i64 {
+fn parse_expr1(terms: Vec<String>) -> i64 {
     let mut left = 0;
     let mut op = "";
-    let mut right = 0;
     for t in terms.iter() {
         let int = t.parse::<i64>();
         if !int.is_err() {
             if left == 0 {
                 left = int.unwrap();
             } else {
-                right = int.unwrap();
+                let right = int.unwrap();
                 left = match op {
                     "*" => left * right,
                     _ => left + right,
                 };
                 op = "";
-                right = 0;
             }
         } else {
             op = t;
@@ -36,7 +33,7 @@ fn parse_expr(terms: Vec<String>) -> i64 {
     left
 }
 
-fn parse_expr_with_paren(terms: Vec<String>) -> i64 {
+fn parse_expr_with_paren(terms: Vec<String>, is_part_a: bool) -> i64 {
     let mut pointer = 0;
     let mut terms_to_reduce: Vec<String> = Vec::new();
     let mut reduced_terms: Vec<String> = Vec::new();
@@ -60,7 +57,7 @@ fn parse_expr_with_paren(terms: Vec<String>) -> i64 {
                     let x = terms_to_reduce.len() - 1;
                     let y = terms_to_reduce[x].len();
                     terms_to_reduce[x] = terms_to_reduce[x].get(0..y - 1).unwrap().to_string();
-                    let result = parse_expr_with_paren(terms_to_reduce.clone());
+                    let result = parse_expr_with_paren(terms_to_reduce.clone(), is_part_a);
                     reduced_terms.push(result.to_string());
                     terms_to_reduce.clear();
                     start_paren_count = 0;
@@ -78,20 +75,47 @@ fn parse_expr_with_paren(terms: Vec<String>) -> i64 {
         }
         pointer += 1;
     }
-    parse_expr(reduced_terms)
+    if is_part_a {
+        parse_expr1(reduced_terms)
+    } else {
+        parse_expr2(reduced_terms)
+    }
 }
 
 fn solve1(lines: &Vec<String>) -> i64 {
     let mut sum = 0;
-    for mut line in lines.iter() {
-        let result = parse_expr_with_paren(line.split(" ").map(|l| l.to_string()).collect());
+    for line in lines.iter() {
+        let result = parse_expr_with_paren(line.split(" ").map(|l| l.to_string()).collect(), true);
         sum += result;
     }
     sum
 }
 
+fn parse_expr2(terms: Vec<String>) -> i64 {
+    let mut reduced_terms = terms.clone();
+    while reduced_terms.contains(&String::from("+")) {
+        let (index, _) = reduced_terms
+            .iter()
+            .enumerate()
+            .find(|(_, t)| t.to_string() == String::from("+"))
+            .unwrap();
+        let result = reduced_terms[index - 1].parse::<i64>().unwrap()
+            + reduced_terms[index + 1].parse::<i64>().unwrap();
+        reduced_terms.insert(index - 1, result.to_string());
+        reduced_terms.remove(index);
+        reduced_terms.remove(index);
+        reduced_terms.remove(index);
+    }
+    parse_expr1(reduced_terms.clone())
+}
+
 fn solve2(lines: &Vec<String>) -> i64 {
-    0
+    let mut sum = 0;
+    for line in lines.iter() {
+        let result = parse_expr_with_paren(line.split(" ").map(|l| l.to_string()).collect(), false);
+        sum += result;
+    }
+    sum
 }
 
 fn read_lines_as_str<P>(filename: P) -> Vec<String>
