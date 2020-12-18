@@ -4,8 +4,7 @@ use std::path::Path;
 
 pub fn main() {
     let lines = read_lines_as_str("./day18.input");
-    let answer1 = solve1(&lines);
-    let answer2 = solve2(&lines);
+    let (answer1, answer2) = solve(&lines);
     println!("Answer 1 {}", answer1);
     println!("Answer 2 {}", answer2);
 }
@@ -14,12 +13,11 @@ fn parse_expr1(terms: Vec<String>) -> i64 {
     let mut left = 0;
     let mut op = "";
     for t in terms.iter() {
-        let int = t.parse::<i64>();
-        if !int.is_err() {
+        if let Ok(int) = t.parse::<i64>() {
             if left == 0 {
-                left = int.unwrap();
+                left = int;
             } else {
-                let right = int.unwrap();
+                let right = int;
                 left = match op {
                     "*" => left * right,
                     _ => left + right,
@@ -33,7 +31,23 @@ fn parse_expr1(terms: Vec<String>) -> i64 {
     left
 }
 
-fn parse_expr_with_paren(terms: Vec<String>, is_part_a: bool) -> i64 {
+fn parse_expr2(mut terms: Vec<String>) -> i64 {
+    while terms.contains(&String::from("+")) {
+        let (index, _) = terms
+            .iter()
+            .enumerate()
+            .find(|(_, t)| t.to_string() == *"+")
+            .unwrap();
+        let r = terms[index - 1].parse::<i64>().unwrap() + terms[index + 1].parse::<i64>().unwrap();
+        terms.insert(index - 1, r.to_string());
+        terms.remove(index);
+        terms.remove(index);
+        terms.remove(index);
+    }
+    parse_expr1(terms)
+}
+
+fn parse_expr_with_paren(terms: &[String], is_part_a: bool) -> i64 {
     let mut pointer = 0;
     let mut terms_to_reduce: Vec<String> = Vec::new();
     let mut reduced_terms: Vec<String> = Vec::new();
@@ -43,10 +57,10 @@ fn parse_expr_with_paren(terms: Vec<String>, is_part_a: bool) -> i64 {
         let current_term = terms[pointer].to_string();
         // Paren statement already started
         if start_paren_count > 0 {
-            if current_term.contains("(") {
+            if current_term.contains('(') {
                 start_paren_count += current_term.chars().filter(|&c| c == '(').count();
                 terms_to_reduce.push(current_term);
-            } else if current_term.contains(")") {
+            } else if current_term.contains(')') {
                 end_paren_count += current_term.chars().filter(|&c| c == ')').count();
                 terms_to_reduce.push(current_term);
                 // We've found the end of the parenthesis statement
@@ -57,7 +71,7 @@ fn parse_expr_with_paren(terms: Vec<String>, is_part_a: bool) -> i64 {
                     let x = terms_to_reduce.len() - 1;
                     let y = terms_to_reduce[x].len();
                     terms_to_reduce[x] = terms_to_reduce[x].get(0..y - 1).unwrap().to_string();
-                    let result = parse_expr_with_paren(terms_to_reduce.clone(), is_part_a);
+                    let result = parse_expr_with_paren(&terms_to_reduce, is_part_a);
                     reduced_terms.push(result.to_string());
                     terms_to_reduce.clear();
                     start_paren_count = 0;
@@ -67,7 +81,7 @@ fn parse_expr_with_paren(terms: Vec<String>, is_part_a: bool) -> i64 {
                 terms_to_reduce.push(current_term);
             }
         // Start of a paren statement
-        } else if current_term.contains("(") {
+        } else if current_term.contains('(') {
             start_paren_count += current_term.chars().filter(|&c| c == '(').count();
             terms_to_reduce.push(current_term);
         } else {
@@ -82,40 +96,15 @@ fn parse_expr_with_paren(terms: Vec<String>, is_part_a: bool) -> i64 {
     }
 }
 
-fn solve1(lines: &Vec<String>) -> i64 {
-    let mut sum = 0;
+fn solve(lines: &[String]) -> (i64, i64) {
+    let mut sum1 = 0;
+    let mut sum2 = 0;
     for line in lines.iter() {
-        let result = parse_expr_with_paren(line.split(" ").map(|l| l.to_string()).collect(), true);
-        sum += result;
+        let terms: Vec<String> = line.split(' ').map(|l| l.to_string()).collect();
+        sum1 += parse_expr_with_paren(&terms, true);
+        sum2 += parse_expr_with_paren(&terms, false);
     }
-    sum
-}
-
-fn parse_expr2(terms: Vec<String>) -> i64 {
-    let mut reduced_terms = terms.clone();
-    while reduced_terms.contains(&String::from("+")) {
-        let (index, _) = reduced_terms
-            .iter()
-            .enumerate()
-            .find(|(_, t)| t.to_string() == String::from("+"))
-            .unwrap();
-        let result = reduced_terms[index - 1].parse::<i64>().unwrap()
-            + reduced_terms[index + 1].parse::<i64>().unwrap();
-        reduced_terms.insert(index - 1, result.to_string());
-        reduced_terms.remove(index);
-        reduced_terms.remove(index);
-        reduced_terms.remove(index);
-    }
-    parse_expr1(reduced_terms.clone())
-}
-
-fn solve2(lines: &Vec<String>) -> i64 {
-    let mut sum = 0;
-    for line in lines.iter() {
-        let result = parse_expr_with_paren(line.split(" ").map(|l| l.to_string()).collect(), false);
-        sum += result;
-    }
-    sum
+    (sum1, sum2)
 }
 
 fn read_lines_as_str<P>(filename: P) -> Vec<String>
