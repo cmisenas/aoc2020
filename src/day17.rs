@@ -22,10 +22,6 @@ impl Cube {
     fn to_id(&self) -> String {
         self.x.to_string() + "," + &self.y.to_string() + "," + &self.z.to_string()
     }
-
-    fn eq(&self, cube: &Cube) -> bool {
-        self.x == cube.x && self.y == cube.y && self.z == cube.z
-    }
 }
 
 impl HyperCube {
@@ -37,10 +33,6 @@ impl HyperCube {
             + &self.z.to_string()
             + ","
             + &self.w.to_string()
-    }
-
-    fn eq(&self, cube: &HyperCube) -> bool {
-        self.x == cube.x && self.y == cube.y && self.z == cube.z && self.w == cube.w
     }
 }
 
@@ -70,7 +62,7 @@ fn get_neighbors(coor: &Cube) -> Vec<Cube> {
     neighbors
 }
 
-fn convert_to_cube(lines: &Vec<String>) -> Vec<(bool, Cube)> {
+fn convert_to_cube(lines: &[String]) -> Vec<(bool, Cube)> {
     let z = 0;
     let mut cubes: Vec<(bool, Cube)> = Vec::new();
     for (y, line) in lines.iter().enumerate() {
@@ -88,7 +80,7 @@ fn convert_to_cube(lines: &Vec<String>) -> Vec<(bool, Cube)> {
     cubes
 }
 
-fn solve1(lines: &Vec<String>) -> usize {
+fn solve1(lines: &[String]) -> usize {
     let mut cubes_list = convert_to_cube(lines);
     let mut cube_state: HashMap<String, (bool, Cube)> = HashMap::new();
     for (active, cube) in cubes_list.iter() {
@@ -110,15 +102,14 @@ fn solve1(lines: &Vec<String>) -> usize {
                     }
                 })
                 .count();
-            if *active && (active_neighbors == 2 || active_neighbors == 3) {
-                // Remain active
-                new_cube_state.insert(cube.to_id(), (true, cube.clone()));
-            } else if !*active && active_neighbors == 3 {
-                // Be active
+            if active_neighbors == 3 || (*active && active_neighbors == 2) {
                 new_cube_state.insert(cube.to_id(), (true, cube.clone()));
             }
 
             for n in neighbors.iter() {
+                if new_cube_state.contains_key(&n.to_id()) {
+                    continue;
+                }
                 let nn = get_neighbors(n);
                 let n_state = if let Some(found_cube) = cube_state.get(&n.to_id()) {
                     (found_cube.0, found_cube.1.clone())
@@ -137,10 +128,7 @@ fn solve1(lines: &Vec<String>) -> usize {
                         }
                     })
                     .count();
-                if n_state.0 && (active_nn == 2 || active_nn == 3) {
-                    // Remain active
-                    new_cube_state.insert(n_state.1.to_id(), (true, n_state.1.clone()));
-                } else if !n_state.0 && active_nn == 3 {
+                if active_nn == 3 || (n_state.0 && active_nn == 2) {
                     // Be active
                     new_cube_state.insert(n_state.1.to_id(), (true, n_state.1.clone()));
                 }
@@ -151,8 +139,6 @@ fn solve1(lines: &Vec<String>) -> usize {
             cubes_list.push((a.0, a.1.clone()));
         }
         cube_state = new_cube_state.clone();
-        println!("Active cubes {:?}", cube_state);
-        println!("Active cubes # {:?}\n\n", cube_state.len());
     }
     cube_state.len()
 }
@@ -178,7 +164,7 @@ fn get_hyper_neighbors(coor: &HyperCube) -> Vec<HyperCube> {
     neighbors
 }
 
-fn convert_to_hypercube(lines: &Vec<String>) -> Vec<(bool, HyperCube)> {
+fn convert_to_hypercube(lines: &[String]) -> Vec<(bool, HyperCube)> {
     let z = 0;
     let w = 0;
     let mut cubes: Vec<(bool, HyperCube)> = Vec::new();
@@ -198,7 +184,7 @@ fn convert_to_hypercube(lines: &Vec<String>) -> Vec<(bool, HyperCube)> {
     cubes
 }
 
-fn solve2(lines: &Vec<String>) -> usize {
+fn solve2(lines: &[String]) -> usize {
     let mut cubes_list = convert_to_hypercube(lines);
     let mut cube_state: HashMap<String, (bool, HyperCube)> = HashMap::new();
     for (active, cube) in cubes_list.iter() {
@@ -220,15 +206,15 @@ fn solve2(lines: &Vec<String>) -> usize {
                     }
                 })
                 .count();
-            if *active && (active_neighbors == 2 || active_neighbors == 3) {
-                // Remain active
-                new_cube_state.insert(cube.to_id(), (true, cube.clone()));
-            } else if !*active && active_neighbors == 3 {
-                // Be active
+            if active_neighbors == 3 || (*active && active_neighbors == 2) {
                 new_cube_state.insert(cube.to_id(), (true, cube.clone()));
             }
 
             for n in neighbors.iter() {
+                // If cube already checked
+                if new_cube_state.contains_key(&n.to_id()) {
+                    continue;
+                }
                 let nn = get_hyper_neighbors(n);
                 let n_state = if let Some(found_cube) = cube_state.get(&n.to_id()) {
                     (found_cube.0, found_cube.1.clone())
@@ -247,11 +233,7 @@ fn solve2(lines: &Vec<String>) -> usize {
                         }
                     })
                     .count();
-                if n_state.0 && (active_nn == 2 || active_nn == 3) {
-                    // Remain active
-                    new_cube_state.insert(n_state.1.to_id(), (true, n_state.1.clone()));
-                } else if !n_state.0 && active_nn == 3 {
-                    // Be active
+                if active_nn == 3 || (n_state.0 && active_nn == 2) {
                     new_cube_state.insert(n_state.1.to_id(), (true, n_state.1.clone()));
                 }
             }
@@ -261,8 +243,6 @@ fn solve2(lines: &Vec<String>) -> usize {
             cubes_list.push((a.0, a.1.clone()));
         }
         cube_state = new_cube_state.clone();
-        println!("Active cubes {:?}", cube_state);
-        println!("Active cubes # {:?}\n\n", cube_state.len());
     }
     cube_state.len()
 }

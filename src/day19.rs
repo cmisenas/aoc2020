@@ -31,20 +31,14 @@ pub fn main() {
     println!("Answer 2 {}", answer2);
 }
 
-fn solve1(rules: &HashMap<String, String>, messages: &[String]) -> i32 {
+fn solve1(rules: &HashMap<String, String>, messages: &[String]) -> usize {
     let parsed_rule = form_rule(String::from("0"), rules);
     let mut regex_str = String::from("\\b");
     regex_str.push_str(&parsed_rule);
     regex_str.push_str("\\b");
     // println!("Parsed regex is {}", regex_str);
     let rule_regex = Regex::new(&regex_str).unwrap();
-    let mut valid = 0;
-    for message in messages.iter() {
-        if rule_regex.is_match(&&message) {
-            valid += 1;
-        }
-    }
-    valid
+    messages.iter().filter(|m| rule_regex.is_match(&&m)).count()
 }
 
 fn form_rule(rule: String, rules: &HashMap<String, String>) -> String {
@@ -77,7 +71,7 @@ fn form_rule(rule: String, rules: &HashMap<String, String>) -> String {
     expanded.join("")
 }
 
-fn solve2(ref_rules: &HashMap<String, String>, messages: &[String]) -> i32 {
+fn solve2(ref_rules: &HashMap<String, String>, messages: &[String]) -> usize {
     /***
      * Replace following rules
      * 8: 42 | 42 8
@@ -96,13 +90,7 @@ fn solve2(ref_rules: &HashMap<String, String>, messages: &[String]) -> i32 {
     regex_str.push_str("\\b");
     // println!("Parsed regex is {}", regex_str);
     let rule_regex = Regex::new(&regex_str).unwrap();
-    let mut valid = 0;
-    for message in messages.iter() {
-        if rule_regex.is_match(&&message) {
-            valid += 1;
-        }
-    }
-    valid
+    messages.iter().filter(|m| rule_regex.is_match(&&m)).count()
 }
 
 fn form_rule2(rule: String, rules: &HashMap<String, String>) -> String {
