@@ -41,10 +41,6 @@ impl fmt::Debug for Tile {
 }
 
 impl Tile {
-    fn eq(&self, other: Tile) -> bool {
-        self.id == other.id
-    }
-
     fn is_side_strict_adj(&self, side: &Side, other_tile: &Tile) -> bool {
         let tile_side = self.sides.get(side).unwrap();
         other_tile
@@ -58,10 +54,6 @@ impl Tile {
         other_tile.sides.iter().any(|(_, other_tile_side)| {
             other_tile_side == tile_side || other_tile_side.chars().rev().eq(tile_side.chars())
         })
-    }
-
-    fn number_id(&self) -> String {
-        self.id.strip_prefix("Tile ").unwrap().to_string()
     }
 
     fn get_new_side(&self, side: Side) -> String {
@@ -206,7 +198,6 @@ fn solve1(tiles: &Vec<Tile>) -> u64 {
     }
     let mut prod = 1;
     for (tile, matches) in &tile_matches {
-        // println!("Matches for tile {} {:?}", tile, matches);
         if matches.len() == 2 {
             prod *= tile.strip_prefix("Tile ").unwrap().parse::<u64>().unwrap();
         }
@@ -214,7 +205,7 @@ fn solve1(tiles: &Vec<Tile>) -> u64 {
     prod
 }
 
-fn solve2(tiles: &Vec<Tile>) -> i32 {
+fn solve2(tiles: &Vec<Tile>) -> usize {
     let mut tiles_by_id: HashMap<String, Tile> = HashMap::new();
     let mut tile_matches: HashMap<String, HashMap<String, Tile>> = HashMap::new();
     let sides = vec![Side::Top, Side::Right, Side::Bottom, Side::Left];
@@ -248,7 +239,6 @@ fn solve2(tiles: &Vec<Tile>) -> i32 {
     // Start with the top left corner
     let mut curr_tile = tiles_by_id.get_mut(curr_tile_id.0).unwrap();
     let mut image: Vec<Vec<String>> = Vec::new();
-    // println!("Matches for tile {:#?}", curr_tile_id);
     let mut row = 0;
     let mut col = 0;
     let end = (tiles.len() as f64).sqrt() as u8;
@@ -367,7 +357,6 @@ fn solve2(tiles: &Vec<Tile>) -> i32 {
             }
             col += 1;
         }
-        println!("{:#?}", curr_layer_ids);
         *curr_tile = next_first_tile.clone();
         curr_tile_id = tile_matches
             .iter()
@@ -387,17 +376,66 @@ fn solve2(tiles: &Vec<Tile>) -> i32 {
         col = 0;
         row += 1;
     }
-    let full_image = image.iter().flatten().collect::<Vec<&String>>();
-    println!("Image without borders {:#?}", full_image);
-    0
-}
-
-fn convolve(image: Vec<String>) {
-    let monster = vec![
-        "                  # ",
-        "#    ##    ##    ###",
-        " #  #  #  #  #  #   ",
+    let full_image = image.into_iter().flatten().collect::<Vec<String>>();
+    let mut image_tile = Tile {
+        id: String::from("0000"),
+        sides: HashMap::new(), // Don't care about this
+        content: full_image,
+    };
+    let monster_plaintext = vec![
+        "..................#.",
+        "#....##....##....###",
+        ".#..#..#..#..#..#...",
     ];
+    let monster_len = monster_plaintext[0].len();
+    let monster_ht = monster_plaintext.len();
+    let monster = monster_plaintext
+        .iter()
+        .map(|t| Regex::new(t).unwrap())
+        .collect::<Vec<Regex>>();
+    let mut monster_pixels: Vec<Vec<char>> = Vec::new();
+    let mut found_match = false;
+    for i in 0..9 {
+        for c in image_tile.content.iter() {
+            monster_pixels.push(c.clone().chars().collect::<Vec<char>>());
+        }
+        for row in 0..(image_tile.content.len() - monster_ht) {
+            for col in 0..(image_tile.content[0].len() - monster_len) {
+                if monster.iter().enumerate().all(|(j, mon)| {
+                    let image_row = row + j;
+                    let chunk = image_tile.content[image_row]
+                        .get(col..col + monster_len)
+                        .unwrap();
+                    mon.is_match(chunk)
+                }) {
+                    found_match = true;
+                    for (j, mon) in monster_plaintext.iter().enumerate() {
+                        let image_row = row + j;
+                        let chunk = monster_pixels[image_row]
+                            .get_mut(col..col + monster_len)
+                            .unwrap();
+                        for (y, mon_ch) in mon.chars().enumerate() {
+                            if mon_ch == '#' {
+                                chunk[y] = 'O';
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if found_match {
+            break;
+        }
+        if i == 4 {
+            image_tile.flip(true);
+        } else {
+            image_tile.rotate(1);
+        }
+        monster_pixels.clear();
+    }
+    monster_pixels.iter().fold(0, |acc, l| {
+        l.iter().filter(|&&c| c == '#').count() + acc as usize
+    })
 }
 
 fn read_lines_as_str<P>(filename: P) -> Vec<String>
