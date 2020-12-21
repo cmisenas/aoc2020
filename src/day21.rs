@@ -1,19 +1,16 @@
 use std::collections::HashMap;
-use std::collections::HashSet;
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
 
 pub fn main() {
     let lines = read_lines_as_str("./day21.input");
-    let answer1 = solve1(&lines);
-    let answer2 = solve2(&lines);
-
+    let (answer1, answer2) = solve(&lines);
     println!("Answer 1 {}", answer1);
     println!("Answer 2 {}", answer2);
 }
 
-fn solve1(lines: &[String]) -> usize {
+fn solve(lines: &[String]) -> (usize, String) {
     let mut parsed_ingredients: HashMap<String, HashMap<String, usize>> = HashMap::new();
     let mut parsed_allergens: HashMap<String, usize> = HashMap::new();
     let mut claimed_ingredients: HashMap<String, String> = HashMap::new();
@@ -46,7 +43,7 @@ fn solve1(lines: &[String]) -> usize {
             }
         }
     }
-    for (allergen, ingredient) in parsed_ingredients.iter_mut() {
+    for (_, ingredient) in parsed_ingredients.iter_mut() {
         let max = ingredient
             .iter()
             .fold(0, |acc, (_, t)| if t > &acc { *t } else { acc });
@@ -68,17 +65,24 @@ fn solve1(lines: &[String]) -> usize {
             }
         });
     }
-    parsed_allergens.iter().fold(0, |acc, (ingredient, count)| {
+    let mut dangerous_list = claimed_allergen
+        .iter()
+        .map(|(a, i)| (a.to_string(), i.to_string()))
+        .collect::<Vec<(String, String)>>();
+    dangerous_list.sort();
+    let dangerous_str = dangerous_list
+        .iter()
+        .map(|(_, i)| i.to_string())
+        .collect::<Vec<String>>()
+        .join(",");
+    let not_dangerous_count = parsed_allergens.iter().fold(0, |acc, (ingredient, count)| {
         if claimed_ingredients.contains_key(ingredient) {
             acc
         } else {
             acc + count
         }
-    })
-}
-
-fn solve2(lines: &[String]) -> i32 {
-    0
+    });
+    (not_dangerous_count, dangerous_str)
 }
 
 fn read_lines_as_str<P>(filename: P) -> Vec<String>
