@@ -10,14 +10,6 @@ use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
 
-/**
- * TILE
- * Tile ID, [Side, Side, Side, Side], Matches [Tile]
- * SIDE
- * [index of all #]
- * If there are only 2 matches for a tile, they are corner pieces
- */
-
 #[derive(Clone, PartialEq, Eq)]
 struct Tile {
     id: String,
@@ -35,7 +27,6 @@ enum Side {
 
 impl fmt::Debug for Tile {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // f.debug_struct("").field("", &self.content.join("\n")).finish()
         f.write_fmt(format_args!("\n{}", &self.content.join("\n")))
     }
 }
@@ -66,7 +57,7 @@ impl Tile {
             Side::Left => self
                 .content
                 .iter()
-                .map(|l| l.chars().nth(0).unwrap())
+                .map(|l| l.chars().next().unwrap())
                 .collect::<String>(),
             Side::Top => self.content[0].to_string(),
             Side::Bottom => self.content[self.content.len() - 1].to_string(),
@@ -159,38 +150,38 @@ fn parse_tile(lines: Vec<String>) -> Tile {
     let lside = lines
         .iter()
         .skip(1)
-        .map(|l| l.chars().nth(0).unwrap())
+        .map(|l| l.chars().next().unwrap())
         .collect::<String>();
     let mut sides: HashMap<Side, String> = HashMap::new();
     sides.insert(Side::Top, lines[1].to_string());
     sides.insert(Side::Bottom, lines[lines.len() - 1].to_string());
-    sides.insert(Side::Right, rside.to_string());
-    sides.insert(Side::Left, lside.to_string());
+    sides.insert(Side::Right, rside);
+    sides.insert(Side::Left, lside);
     Tile {
         id: lines[0].replace(':', "").trim().to_string(),
         content: lines[1..].to_vec(),
-        sides: sides.clone(),
+        sides,
     }
 }
 
-fn solve1(tiles: &Vec<Tile>) -> u64 {
+fn solve1(tiles: &[Tile]) -> u64 {
     let mut tile_matches: HashMap<String, HashSet<String>> = HashMap::new();
     let sides = vec![Side::Top, Side::Right, Side::Bottom, Side::Left];
     // Find the matches for each tile
     for tile in tiles {
-        for i in 0..4 {
+        for side in &sides {
             for other_tile in tiles {
                 if other_tile.id == tile.id {
                     continue;
                 }
-                if tile.is_side_adj(&sides[i], other_tile) {
+                if tile.is_side_adj(side, other_tile) {
                     tile_matches
                         .entry(tile.id.to_string())
-                        .or_insert(HashSet::new())
+                        .or_insert_with(HashSet::new)
                         .insert(other_tile.id.to_string());
                     tile_matches
                         .entry(other_tile.id.to_string())
-                        .or_insert(HashSet::new())
+                        .or_insert_with(HashSet::new)
                         .insert(tile.id.to_string());
                 }
             }
@@ -205,26 +196,26 @@ fn solve1(tiles: &Vec<Tile>) -> u64 {
     prod
 }
 
-fn solve2(tiles: &Vec<Tile>) -> usize {
+fn solve2(tiles: &[Tile]) -> usize {
     let mut tiles_by_id: HashMap<String, Tile> = HashMap::new();
     let mut tile_matches: HashMap<String, HashMap<String, Tile>> = HashMap::new();
     let sides = vec![Side::Top, Side::Right, Side::Bottom, Side::Left];
     // Find the matches for each tile
     for tile in tiles {
         tiles_by_id.insert(tile.id.to_string(), tile.clone());
-        for i in 0..4 {
+        for side in &sides {
             for other_tile in tiles {
                 if other_tile.id == tile.id {
                     continue;
                 }
-                if tile.is_side_adj(&sides[i], other_tile) {
+                if tile.is_side_adj(&side, other_tile) {
                     tile_matches
                         .entry(tile.id.to_string())
-                        .or_insert(HashMap::new())
+                        .or_insert_with(HashMap::new)
                         .insert(other_tile.id.to_string(), other_tile.clone());
                     tile_matches
                         .entry(other_tile.id.to_string())
-                        .or_insert(HashMap::new())
+                        .or_insert_with(HashMap::new)
                         .insert(tile.id.to_string(), tile.clone());
                 }
             }
@@ -401,13 +392,14 @@ fn solve2(tiles: &Vec<Tile>) -> usize {
         }
         for row in 0..(image_tile.content.len() - monster_ht) {
             for col in 0..(image_tile.content[0].len() - monster_len) {
-                if monster.iter().enumerate().all(|(j, mon)| {
+                let monster_found = monster.iter().enumerate().all(|(j, mon)| {
                     let image_row = row + j;
                     let chunk = image_tile.content[image_row]
                         .get(col..col + monster_len)
                         .unwrap();
                     mon.is_match(chunk)
-                }) {
+                });
+                if monster_found {
                     found_match = true;
                     for (j, mon) in monster_plaintext.iter().enumerate() {
                         let image_row = row + j;
