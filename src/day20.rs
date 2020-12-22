@@ -271,7 +271,7 @@ fn solve2(tiles: &[Tile]) -> usize {
                     }
                 }
             } else if col == 0 {
-                for i in 0..16 {
+                for i in 0..9 {
                     let r_has_match = curr_tile_id
                         .1
                         .iter()
@@ -301,28 +301,28 @@ fn solve2(tiles: &[Tile]) -> usize {
                         curr_tile = tiles_by_id.get_mut(curr_tile_id.0).unwrap();
                         break;
                     }
-                    if i == 8 {
+                    if i == 4 {
                         curr_tile.flip(true);
                     } else {
                         curr_tile.rotate(1);
                     }
                 }
             } else if col == end - 1 {
-                for i in 0..16 {
+                for i in 0..9 {
                     let l_is_strict_match = curr_tile.is_side_strict_adj(&Side::Left, &prev_tile);
                     if l_is_strict_match {
                         curr_layer.push(curr_tile.content.clone());
                         curr_layer_ids.push(curr_tile.id.to_string());
                         break;
                     }
-                    if i == 8 {
+                    if i == 4 {
                         curr_tile.flip(true);
                     } else {
                         curr_tile.rotate(1);
                     }
                 }
             } else {
-                for i in 0..16 {
+                for i in 0..9 {
                     let l_is_strict_match = curr_tile.is_side_strict_adj(&Side::Left, &prev_tile);
                     let r_has_match = curr_tile_id
                         .1
@@ -339,7 +339,7 @@ fn solve2(tiles: &[Tile]) -> usize {
                         curr_tile = tiles_by_id.get_mut(curr_tile_id.0).unwrap();
                         break;
                     }
-                    if i == 8 {
+                    if i == 4 {
                         curr_tile.flip(true);
                     } else {
                         curr_tile.rotate(1);
