@@ -1,6 +1,6 @@
 #![feature(hash_drain_filter)]
-mod day22;
+mod day23;
 
 fn main() {
-    day22::main();
+    day23::main();
 }
