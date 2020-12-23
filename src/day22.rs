@@ -70,22 +70,22 @@ fn run_recursive_combat(
     mut player_2_cards: Vec<usize>,
 ) -> (Vec<usize>, Vec<usize>) {
     let mut infinite_prevention1: HashSet<String> = HashSet::new();
-    let mut infinite_prevention2: HashSet<String> = HashSet::new();
+    // let mut infinite_prevention2: HashSet<String> = HashSet::new();
     let mut recursion_found = false;
     loop {
         let current_cards1 = player_1_cards.iter().map(|c| c.to_string()).join(",");
-        let current_cards2 = player_2_cards.iter().map(|c| c.to_string()).join(",");
+        // let current_cards2 = player_2_cards.iter().map(|c| c.to_string()).join(",");
         if player_1_cards.is_empty() || player_2_cards.is_empty() {
             break;
         }
         if infinite_prevention1.contains(&current_cards1)
-            || infinite_prevention2.contains(&current_cards2)
+        // || infinite_prevention2.contains(&current_cards2)
         {
             recursion_found = true;
             break;
         }
         infinite_prevention1.insert(current_cards1.to_string());
-        infinite_prevention2.insert(current_cards2.to_string());
+        //infinite_prevention2.insert(current_cards2.to_string());
 
         let p1card = player_1_cards.pop().unwrap();
         let p2card = player_2_cards.pop().unwrap();
