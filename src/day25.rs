@@ -13,28 +13,25 @@ pub fn main() {
 fn solve1(card_pk: u64, door_pk: u64) -> u64 {
     let subject_val = 7;
     let remainder = 20201227;
-    let mut card_loop_size = 1;
+    let mut card_loop_size = 0;
     let mut card_value = 1;
-    let mut door_loop_size = 1;
+    let mut door_loop_size = 0;
     let mut door_value = 1;
-    loop {
-        card_value *= subject_val;
-        card_value %= remainder;
-        if card_value == card_pk {
-            break;
-        }
-        card_loop_size += 1;
-    }
-    loop {
-        door_value *= subject_val;
-        door_value %= remainder;
-        if door_value == door_pk {
-            break;
-        }
-        door_loop_size += 1;
-    }
     let mut encryption_key = 1;
-
+    while door_value != door_pk || card_value != card_pk {
+        if card_value != card_pk {
+            card_value *= subject_val;
+            card_value %= remainder;
+            card_loop_size += 1;
+        }
+        if door_value != door_pk {
+            door_value *= subject_val;
+            door_value %= remainder;
+            door_loop_size += 1;
+        }
+    }
+    println!("Door loop size {}", door_loop_size);
+    println!("Card loop size {}", card_loop_size);
     for _ in 0..door_loop_size {
         encryption_key *= card_pk;
         encryption_key %= remainder;
