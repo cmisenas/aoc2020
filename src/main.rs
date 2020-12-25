@@ -1,8 +1,8 @@
 #![feature(hash_drain_filter)]
 #![feature(split_inclusive)]
 #![feature(destructuring_assignment)]
-mod day24;
+mod day25;
 
 fn main() {
-    day24::main();
+    day25::main();
 }
