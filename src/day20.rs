@@ -13,8 +13,8 @@ use std::path::Path;
 #[derive(Clone, PartialEq, Eq)]
 struct Tile {
     id: String,
-    sides: HashMap<Side, String>,
     content: Vec<String>,
+    sides: HashMap<Side, String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -31,7 +31,31 @@ impl fmt::Debug for Tile {
     }
 }
 
+fn get_side(side: Side, content: Vec<String>) -> String {
+    match side {
+        Side::Right => content
+            .iter()
+            .map(|l| l.chars().last().unwrap())
+            .collect::<String>(),
+        Side::Left => content
+            .iter()
+            .map(|l| l.chars().next().unwrap())
+            .collect::<String>(),
+        Side::Top => content[0].to_string(),
+        Side::Bottom => content[content.len() - 1].to_string(),
+    }
+}
+
 impl Tile {
+    fn new(id: String, content: Vec<String>) -> Tile {
+        let mut sides: HashMap<Side, String> = HashMap::new();
+        sides.insert(Side::Top, get_side(Side::Top, content.clone()));
+        sides.insert(Side::Bottom, get_side(Side::Bottom, content.clone()));
+        sides.insert(Side::Right, get_side(Side::Right, content.clone()));
+        sides.insert(Side::Left, get_side(Side::Left, content.clone()));
+        Tile { id, content, sides }
+    }
+
     fn is_side_strict_adj(&self, side: &Side, other_tile: &Tile) -> bool {
         let tile_side = self.sides.get(side).unwrap();
         other_tile
@@ -47,21 +71,8 @@ impl Tile {
         })
     }
 
-    fn get_new_side(&self, side: Side) -> String {
-        match side {
-            Side::Right => self
-                .content
-                .iter()
-                .map(|l| l.chars().last().unwrap())
-                .collect::<String>(),
-            Side::Left => self
-                .content
-                .iter()
-                .map(|l| l.chars().next().unwrap())
-                .collect::<String>(),
-            Side::Top => self.content[0].to_string(),
-            Side::Bottom => self.content[self.content.len() - 1].to_string(),
-        }
+    fn get_tile_side(&self, side: Side) -> String {
+        get_side(side, self.content.clone())
     }
 
     fn set_side(&mut self, side: Side, val: String) {
@@ -69,56 +80,34 @@ impl Tile {
     }
 
     fn reset_sides(&mut self) {
-        self.set_side(Side::Top, self.get_new_side(Side::Top));
-        self.set_side(Side::Left, self.get_new_side(Side::Left));
-        self.set_side(Side::Right, self.get_new_side(Side::Right));
-        self.set_side(Side::Bottom, self.get_new_side(Side::Bottom));
+        self.set_side(Side::Top, self.get_tile_side(Side::Top));
+        self.set_side(Side::Left, self.get_tile_side(Side::Left));
+        self.set_side(Side::Right, self.get_tile_side(Side::Right));
+        self.set_side(Side::Bottom, self.get_tile_side(Side::Bottom));
     }
 
-    fn flip(&mut self, horizontal: bool) {
-        self.content = match horizontal {
-            true => self
-                .content
-                .iter()
-                .map(|l| l.chars().rev().collect::<String>())
-                .collect::<Vec<String>>(),
-            _ => self
-                .content
-                .iter()
-                .rev()
-                .map(|l| l.to_string())
-                .collect::<Vec<String>>(),
-        };
+    // Only need this as we can achieve the same effect for vertical flip by rotating first
+    fn flip_horizontal(&mut self) {
+        self.content = self
+            .content
+            .iter()
+            .map(|l| l.chars().rev().collect::<String>())
+            .collect::<Vec<String>>();
         self.reset_sides();
     }
 
-    fn rotate(&mut self, turns: usize) {
-        self.content = match turns {
-            1 => (0..self.content[0].len())
-                .map(|c| {
-                    (0..self.content[0].len())
-                        .map(|r| {
-                            let row = self.content[0].len() - r - 1;
-                            self.content[row].chars().nth(c).unwrap()
-                        })
-                        .collect::<String>()
-                })
-                .collect::<Vec<String>>(),
-            2 => self
-                .content
-                .iter()
-                .rev()
-                .map(|l| l.chars().rev().collect::<String>())
-                .collect::<Vec<String>>(),
-            _ => (0..self.content[0].len())
-                .map(|c| {
-                    let col = self.content[0].len() - c - 1;
-                    (0..self.content[0].len())
-                        .map(|r| self.content[r].chars().nth(col).unwrap())
-                        .collect::<String>()
-                })
-                .collect::<Vec<String>>(),
-        };
+    // Rotate by 90 deg clockwise
+    fn rotate(&mut self) {
+        self.content = (0..self.content[0].len())
+            .map(|c| {
+                (0..self.content[0].len())
+                    .map(|r| {
+                        let row = self.content[0].len() - r - 1;
+                        self.content[row].chars().nth(c).unwrap()
+                    })
+                    .collect::<String>()
+            })
+            .collect::<Vec<String>>();
         self.reset_sides();
     }
 }
@@ -142,26 +131,10 @@ pub fn main() {
 }
 
 fn parse_tile(lines: Vec<String>) -> Tile {
-    let rside = lines
-        .iter()
-        .skip(1)
-        .map(|l| l.chars().last().unwrap())
-        .collect::<String>();
-    let lside = lines
-        .iter()
-        .skip(1)
-        .map(|l| l.chars().next().unwrap())
-        .collect::<String>();
-    let mut sides: HashMap<Side, String> = HashMap::new();
-    sides.insert(Side::Top, lines[1].to_string());
-    sides.insert(Side::Bottom, lines[lines.len() - 1].to_string());
-    sides.insert(Side::Right, rside);
-    sides.insert(Side::Left, lside);
-    Tile {
-        id: lines[0].replace(':', "").trim().to_string(),
-        content: lines[1..].to_vec(),
-        sides,
-    }
+    Tile::new(
+        lines[0].replace(':', "").trim().to_string(),
+        lines[1..].to_vec(),
+    )
 }
 
 fn solve1(tiles: &[Tile]) -> u64 {
@@ -223,135 +196,68 @@ fn solve2(tiles: &[Tile]) -> usize {
     }
     // Pick a corner piece, rotate until top and left don't have a match
     // Iterate over matches and find the right,
-    let mut curr_tile_id = tile_matches
+    let mut curr_tile_matches = tile_matches
         .iter()
         .find(|(_, matches)| matches.len() == 2)
         .unwrap();
     // Start with the top left corner
-    let mut curr_tile = tiles_by_id.get_mut(curr_tile_id.0).unwrap();
+    let mut curr_tile = tiles_by_id.get_mut(curr_tile_matches.0).unwrap();
     let mut image: Vec<Vec<String>> = Vec::new();
     let mut row = 0;
     let mut col = 0;
     let end = (tiles.len() as f64).sqrt() as u8;
-    let mut prev_tile = curr_tile.clone();
-    let mut prev_first_tile = curr_tile.clone();
-    let mut next_first_tile = curr_tile.clone();
+    let mut prev_tile = curr_tile.clone(); // Dummy init
+    let mut prev_first_tile = curr_tile.clone(); // Dummy init
+    let mut next_first_tile = curr_tile.clone(); // Dummy init
     while row < end {
         let mut curr_layer: Vec<Vec<String>> = Vec::new();
-        let mut curr_layer_ids: Vec<String> = Vec::new();
         while col < end {
-            // Top left corner
-            if col == 0 && row == 0 {
-                for i in 0..8 {
-                    let r_has_match = curr_tile_id
-                        .1
-                        .iter()
-                        .find(|(_, m)| curr_tile.is_side_adj(&Side::Right, m));
-                    let b_has_match = curr_tile_id
-                        .1
-                        .iter()
-                        .find(|(_, m)| curr_tile.is_side_adj(&Side::Bottom, m));
-                    if r_has_match.is_some() && b_has_match.is_some() {
-                        next_first_tile = b_has_match.unwrap().1.clone();
-                        prev_first_tile = curr_tile.clone();
-                        curr_layer.push(curr_tile.content.clone());
-                        curr_layer_ids.push(curr_tile.id.to_string());
-                        curr_tile_id = tile_matches
-                            .iter()
-                            .find(|(id, _)| *id == r_has_match.unwrap().0)
-                            .unwrap();
-                        prev_tile = curr_tile.clone();
-                        curr_tile = tiles_by_id.get_mut(curr_tile_id.0).unwrap();
-                        break;
-                    }
-                    if i == 4 {
-                        curr_tile.flip(true);
-                    } else {
-                        curr_tile.rotate(1);
-                    }
-                }
-            } else if col == 0 {
-                for i in 0..9 {
-                    let r_has_match = curr_tile_id
-                        .1
-                        .iter()
-                        .find(|(_, m)| curr_tile.is_side_adj(&Side::Right, m));
-                    let b_has_match = curr_tile_id
-                        .1
-                        .iter()
-                        .find(|(_, m)| curr_tile.is_side_adj(&Side::Bottom, m));
-                    let t_is_strict_match =
-                        curr_tile.is_side_strict_adj(&Side::Top, &prev_first_tile);
-                    if r_has_match.is_some()
-                        && ((b_has_match.is_some() && row < end - 1)
-                            || (b_has_match.is_none() && row == end - 1))
-                        && t_is_strict_match
-                    {
+            for i in 0..=8 {
+                let r_match = curr_tile_matches
+                    .1
+                    .iter()
+                    .find(|(_, m)| curr_tile.is_side_adj(&Side::Right, m));
+                let b_match = curr_tile_matches
+                    .1
+                    .iter()
+                    .find(|(_, m)| curr_tile.is_side_adj(&Side::Bottom, m));
+                let l_is_strict_match = curr_tile.is_side_strict_adj(&Side::Left, &prev_tile);
+                let is_leftmost_tile = col == 0
+                    && (b_match.is_some() || row == end - 1)
+                    && (row == 0 || curr_tile.is_side_strict_adj(&Side::Top, &prev_first_tile));
+                let is_mid_tile = col > 0 && col < end - 1 && l_is_strict_match;
+                if r_match.is_some() && is_leftmost_tile || is_mid_tile {
+                    if col == 0 {
                         if row < end - 1 {
-                            next_first_tile = b_has_match.unwrap().1.clone();
+                            next_first_tile = b_match.unwrap().1.clone();
                         }
                         prev_first_tile = curr_tile.clone();
-                        curr_layer.push(curr_tile.content.clone());
-                        curr_layer_ids.push(curr_tile.id.to_string());
-                        curr_tile_id = tile_matches
-                            .iter()
-                            .find(|(id, _)| *id == r_has_match.unwrap().0)
-                            .unwrap();
-                        prev_tile = curr_tile.clone();
-                        curr_tile = tiles_by_id.get_mut(curr_tile_id.0).unwrap();
-                        break;
                     }
-                    if i == 4 {
-                        curr_tile.flip(true);
-                    } else {
-                        curr_tile.rotate(1);
-                    }
-                }
-            } else if col == end - 1 {
-                for i in 0..9 {
-                    let l_is_strict_match = curr_tile.is_side_strict_adj(&Side::Left, &prev_tile);
-                    if l_is_strict_match {
-                        curr_layer.push(curr_tile.content.clone());
-                        curr_layer_ids.push(curr_tile.id.to_string());
-                        break;
-                    }
-                    if i == 4 {
-                        curr_tile.flip(true);
-                    } else {
-                        curr_tile.rotate(1);
-                    }
-                }
-            } else {
-                for i in 0..9 {
-                    let l_is_strict_match = curr_tile.is_side_strict_adj(&Side::Left, &prev_tile);
-                    let r_has_match = curr_tile_id
-                        .1
+
+                    curr_layer.push(curr_tile.content.clone());
+                    curr_tile_matches = tile_matches
                         .iter()
-                        .find(|(_, m)| curr_tile.is_side_adj(&Side::Right, m));
-                    if l_is_strict_match && r_has_match.is_some() {
-                        curr_layer.push(curr_tile.content.clone());
-                        curr_layer_ids.push(curr_tile.id.to_string());
-                        prev_tile = curr_tile.clone();
-                        curr_tile_id = tile_matches
-                            .iter()
-                            .find(|(id, _)| *id == r_has_match.unwrap().0)
-                            .unwrap();
-                        curr_tile = tiles_by_id.get_mut(curr_tile_id.0).unwrap();
-                        break;
-                    }
-                    if i == 4 {
-                        curr_tile.flip(true);
-                    } else {
-                        curr_tile.rotate(1);
-                    }
+                        .find(|(id, _)| *id == r_match.unwrap().0)
+                        .unwrap();
+                    prev_tile = curr_tile.clone();
+                    curr_tile = tiles_by_id.get_mut(curr_tile_matches.0).unwrap();
+                    break;
+                } else if col == end - 1 && l_is_strict_match {
+                    curr_layer.push(curr_tile.content.clone());
+                    break;
+                }
+                if i == 4 {
+                    curr_tile.flip_horizontal();
+                } else {
+                    curr_tile.rotate();
                 }
             }
             col += 1;
         }
         *curr_tile = next_first_tile.clone();
-        curr_tile_id = tile_matches
+        curr_tile_matches = tile_matches
             .iter()
-            .find(|(id, _)| id.to_string() == curr_tile.id)
+            .find(|(id, _)| **id == curr_tile.id)
             .unwrap();
         let mut image_without_border: Vec<String> = Vec::new();
         let dimension = curr_layer[0].len();
@@ -368,11 +274,7 @@ fn solve2(tiles: &[Tile]) -> usize {
         row += 1;
     }
     let full_image = image.into_iter().flatten().collect::<Vec<String>>();
-    let mut image_tile = Tile {
-        id: String::from("0000"),
-        sides: HashMap::new(), // Don't care about this
-        content: full_image,
-    };
+    let mut image_tile = Tile::new(String::from("0000"), full_image);
     let monster_plaintext = vec![
         "..................#.",
         "#....##....##....###",
@@ -386,7 +288,7 @@ fn solve2(tiles: &[Tile]) -> usize {
         .collect::<Vec<Regex>>();
     let mut monster_pixels: Vec<Vec<char>> = Vec::new();
     let mut found_match = false;
-    for i in 0..9 {
+    for i in 0..=8 {
         for c in image_tile.content.iter() {
             monster_pixels.push(c.clone().chars().collect::<Vec<char>>());
         }
@@ -419,15 +321,20 @@ fn solve2(tiles: &[Tile]) -> usize {
             break;
         }
         if i == 4 {
-            image_tile.flip(true);
+            image_tile.flip_horizontal();
         } else {
-            image_tile.rotate(1);
+            image_tile.rotate();
         }
         monster_pixels.clear();
     }
-    monster_pixels.iter().fold(0, |acc, l| {
-        l.iter().filter(|&&c| c == '#').count() + acc as usize
-    })
+    for m in &monster_pixels {
+        println!("{:?}", m.iter().join(""));
+    }
+    monster_pixels
+        .iter()
+        .flatten()
+        .filter(|&&c| c == '#')
+        .count()
 }
 
 fn read_lines_as_str<P>(filename: P) -> Vec<String>
